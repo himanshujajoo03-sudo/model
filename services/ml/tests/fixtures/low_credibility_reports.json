@@ -1,0 +1,15 @@
+[
+  {
+    "source_id": "suspicious_01",
+    "source_name": "simulated_social",
+    "source_type": "simulated_social",
+    "latitude": 28.6139,
+    "longitude": 77.2090,
+    "city": "Mumbai",
+    "timestamp": "2026-08-15T00:00:00Z",
+    "ingestion_timestamp": "2026-09-01T10:00:00Z",
+    "category": "flood",
+    "description": "flood"
+  }
+]
+

@@ -1,0 +1,39 @@
+[
+  {
+    "source_id": "api_nag_01",
+    "source_name": "Open-Meteo",
+    "source_type": "weather_api",
+    "latitude": 21.145,
+    "longitude": 79.088,
+    "city": "Nagpur",
+    "timestamp": "2026-09-01T14:00:00Z",
+    "ingestion_timestamp": "2026-09-01T14:02:00Z",
+    "category": "heatwave",
+    "description": "Temperature above 44 degrees recorded in Nagpur district with extreme heat warning."
+  },
+  {
+    "source_id": "api_nag_02",
+    "source_name": "IMD",
+    "source_type": "weather_api",
+    "latitude": 21.150,
+    "longitude": 79.090,
+    "city": "Nagpur",
+    "timestamp": "2026-09-01T14:10:00Z",
+    "ingestion_timestamp": "2026-09-01T14:12:00Z",
+    "category": "heatwave",
+    "description": "Severe scorching heatwave conditions prevailing over Vidarbha region."
+  },
+  {
+    "source_id": "rss_nag_01",
+    "source_name": "RSS",
+    "source_type": "rss",
+    "latitude": 21.140,
+    "longitude": 79.085,
+    "city": "Nagpur",
+    "timestamp": "2026-09-01T14:15:00Z",
+    "ingestion_timestamp": "2026-09-01T14:18:00Z",
+    "category": "heatwave",
+    "description": "Extreme daytime heatwave reported in Nagpur with temperatures crossing 43C."
+  }
+]
+

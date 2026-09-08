@@ -1,0 +1,346 @@
+
+
+services:
+  # ── Zookeeper ──────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: weather-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Xmx128m -Xms64m"
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/2181' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Kafka ──────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: weather-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_HEAP_OPTS: "-Xmx384m -Xms128m"
+      KAFKA_JVM_PERFORMANCE_OPTS: "-server -XX:+UseG1GC"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_MESSAGE_MAX_BYTES: 1048576
+      KAFKA_LOG_RETENTION_HOURS: 168
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Kafka UI ───────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: weather-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      JAVA_OPTS: "-Xmx128m"
+      KAFKA_CLUSTERS_0_NAME: weather-platform
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── PostgreSQL + PostGIS ───────────────────────────
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: weather-postgres
+    environment:
+      POSTGRES_DB: weatherdb
+      POSTGRES_USER: weather
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weather -d weatherdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Idempotent PostgreSQL migrations ─────────────────
+  db-migrate:
+    image: postgis/postgis:15-3.4
+    container_name: weather-db-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./sql:/migrations:ro
+      - ./wait-for-postgres.sh:/wait-for-postgres.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      "sh /wait-for-postgres.sh"
+    networks:
+      - weather-net
+
+  # ── Idempotent Kafka topic initialization ───────────
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: weather-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      "for topic in weather.raw citizen.raw social.raw government.raw weather.processed weather.events weather.verified; do
+       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic $$topic --partitions 1 --replication-factor 1;
+       done"
+    networks:
+      - weather-net
+
+  # ── Spark Master ───────────────────────────────────
+  spark-master:
+    build:
+      context: .
+      dockerfile: services/spark/Dockerfile.master
+    container_name: weather-spark-master
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Spark Worker ───────────────────────────────────
+  spark-worker:
+    build:
+      context: .
+      dockerfile: services/spark/Dockerfile.worker
+    container_name: weather-spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MASTER_URL: spark://spark-master:7077
+    ports:
+      - "8082:8081"
+    volumes:
+      - spark_checkpoints:/data/checkpoints
+      - data_volume:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8081"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Stream Processor (validation + ML enrichment) ──
+  stream-processor:
+    build:
+      context: .
+      dockerfile: services/spark/Dockerfile.stream
+    container_name: weather-stream-processor
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPARK_MASTER_URL: local[*]
+      SPARK_RAW_TOPICS: weather.raw,citizen.raw,social.raw,government.raw
+      SPARK_WRITE_PROCESSED_TOPIC: "true"
+      SPARK_CHECKPOINT_PATH: /data/checkpoints/spark_streaming
+      CLASSIFIER_BACKEND: ${CLASSIFIER_BACKEND:-trained}
+      MODEL_PATH: ${MODEL_PATH:-/opt/models/event_classifier/model.pkl}
+      MODEL_CONFIDENCE_THRESHOLD: ${MODEL_CONFIDENCE_THRESHOLD:-0.75}
+    volumes:
+      - spark_checkpoints:/data/checkpoints
+      - data_volume:/data
+      - ./services/spark/jobs/stream_processor.py:/opt/spark/jobs/stream_processor.py:ro
+      - ./services/ml:/opt/spark/ml:ro
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── PostgreSQL Writer (weather.events → PostgreSQL) ──
+  pg-writer:
+    build:
+      context: .
+      dockerfile: services/spark/Dockerfile.pg_writer
+    container_name: weather-pg-writer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPARK_MASTER_URL: local[*]
+      PG_WRITER_TOPIC: weather.events
+      PG_WRITER_CHECKPOINT_PATH: /data/checkpoints/pg_writer
+      DATABASE_URL: postgresql://weather:${POSTGRES_PASSWORD}@postgres:5432/weatherdb
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: weatherdb
+      POSTGRES_USER: weather
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - spark_checkpoints:/data/checkpoints
+      - ./services/spark/jobs/pg_writer.py:/opt/spark/jobs/pg_writer.py:ro
+      - ./services/ml:/opt/spark/ml:ro
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Ingestion Service ──────────────────────────────
+  ingestion:
+    build:
+      context: ./services/ingestion
+      dockerfile: Dockerfile
+    container_name: weather-ingestion
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SYNTHETIC_ENABLED: ${SYNTHETIC_ENABLED:-true}
+      OPENMETEO_POLL_INTERVAL_SECONDS: ${OPENMETEO_POLL_INTERVAL_SECONDS:-300}
+      RSS_POLL_INTERVAL_SECONDS: ${RSS_POLL_INTERVAL_SECONDS:-300}
+    volumes:
+      - data_volume:/data
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── FastAPI Backend ────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: weather-api
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DATABASE_URL: postgresql://weather:${POSTGRES_PASSWORD}@postgres:5432/weatherdb
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-8}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      MEDIA_UPLOAD_PATH: /data/media
+    ports:
+      - "8000:8000"
+    volumes:
+      - data_volume:/data
+      - ./services/api:/app/api
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── React Frontend ─────────────────────────────────
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: weather-frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./services/frontend:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); http.get('http://localhost:5173', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1))\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+# ── Networks ─────────────────────────────────────────
+networks:
+  weather-net:
+    driver: bridge
+
+# ── Volumes ──────────────────────────────────────────
+volumes:
+  pgdata:
+    driver: local
+  kafkadata:
+    driver: local
+  spark_checkpoints:
+    driver: local
+  data_volume:
+    driver: local

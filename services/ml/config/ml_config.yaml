@@ -1,0 +1,73 @@
+# Classification Thresholds (§7.2, §22.1)
+# Configuration for Weather Intelligence AI/ML System
+# Sourced from 05_AI_ML_SPEC.md
+
+# Classification Configuration (§7.2, §19.6, §22.1)
+classification:
+  high_confidence_threshold: 0.80
+  medium_confidence_threshold: 0.60
+  low_confidence_threshold: 0.40
+  backend: "rule_based"  # "rule_based" | "trained" | "hybrid"
+  model_confidence_threshold: 0.75
+  confidence_tiers:
+    high: 0.80
+    medium: 0.60
+    low: 0.40
+
+# Duplicate Detection (§11.2, §12.1, §22.1)
+duplicate:
+  probable_threshold: 0.85
+  possible_threshold: 0.60
+  weights:
+    text: 0.30
+    source_id: 0.20
+    source_url: 0.15
+    category: 0.15
+    time: 0.10
+    distance: 0.10
+
+# Clustering (§13.3, §22.1)
+clustering:
+  radius_km: 3.0
+  time_window_minutes: 30.0
+  max_cluster_size: 50
+  max_future_skew_minutes: 5.0
+
+# Corroboration (§10.2, §22.1)
+corroboration:
+  radius_km: 10.0
+  window_minutes: 30.0
+
+# Credibility Weights (§8.2, §22.1)
+# Must sum to 1.0
+credibility:
+  weights:
+    source_trust: 0.30
+    corroboration: 0.25
+    weather_agreement: 0.20
+    temporal_consistency: 0.10
+    spatial_consistency: 0.10
+    content_quality: 0.05
+
+# In-Memory Window (§18.3, §22.1)
+spark:
+  recent_events_window_minutes: 30
+
+# Training & Retraining Pipeline (§19, §21, §22, §24)
+training:
+  min_samples_per_class: 3
+  split_ratios:
+    train: 0.80
+    val: 0.10
+    test: 0.10
+  random_state: 42
+  validation_policy: "reject"  # "reject" | "skip" | "warn"
+  leakage_policy: "strict"
+  near_duplicate_threshold: 0.85  # "strict" | "warning" | "disabled" (§3 hardening pass 2)
+  acceptance_thresholds:
+    min_macro_f1: 0.70
+    min_accuracy: 0.75
+    min_category_f1: 0.50
+  watcher:
+    debounce_seconds: 2.0
+    poll_interval_seconds: 2.0

@@ -1,0 +1,20 @@
+FROM spark:3.5.3
+
+USER root
+
+# Install curl for healthcheck
+RUN apt-get update -qq && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies to a shared location
+RUN pip3 install --target /opt/spark/python-deps --no-cache-dir numpy pyyaml && \
+    chmod -R 755 /opt/spark/python-deps
+
+USER spark
+WORKDIR /opt/spark
+
+ENV PYTHONPATH="/opt/spark/python-deps:${PYTHONPATH}"
+
+# Start Spark master in foreground, then tail logs
+CMD /opt/spark/sbin/start-master.sh --host 0.0.0.0 --port 7077 --webui-port 8080 && \
+    tail -f /opt/spark/logs/spark--org.apache.spark.deploy.master.Master-*.out

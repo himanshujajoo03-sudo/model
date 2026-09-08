@@ -1,0 +1,51 @@
+{
+  "Mumbai": {
+    "min_lat": 18.85,
+    "max_lat": 19.35,
+    "min_lon": 72.75,
+    "max_lon": 73.05
+  },
+  "Nagpur": {
+    "min_lat": 21.00,
+    "max_lat": 21.30,
+    "min_lon": 78.95,
+    "max_lon": 79.25
+  },
+  "Nashik": {
+    "min_lat": 19.85,
+    "max_lat": 20.15,
+    "min_lon": 73.65,
+    "max_lon": 73.95
+  },
+  "Pune": {
+    "min_lat": 18.35,
+    "max_lat": 18.70,
+    "min_lon": 73.70,
+    "max_lon": 74.05
+  },
+  "Aurangabad": {
+    "min_lat": 19.75,
+    "max_lat": 20.00,
+    "min_lon": 75.20,
+    "max_lon": 75.45
+  },
+  "Kolhapur": {
+    "min_lat": 16.60,
+    "max_lat": 16.80,
+    "min_lon": 74.15,
+    "max_lon": 74.35
+  },
+  "Satara": {
+    "min_lat": 17.60,
+    "max_lat": 17.80,
+    "min_lon": 73.90,
+    "max_lon": 74.10
+  },
+  "Thane": {
+    "min_lat": 19.10,
+    "max_lat": 19.35,
+    "min_lon": 72.90,
+    "max_lon": 73.10
+  }
+}
+

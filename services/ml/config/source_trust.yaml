@@ -1,0 +1,17 @@
+# Source trust configuration (§9.1, §9.2)
+source_trust:
+  government_dataset: 0.95
+  weather_api: 0.95
+  website: 0.80
+  rss: 0.75
+  citizen: 0.60
+  social: 0.55
+  simulated_social: 0.40
+  synthetic: 0.50
+
+# Specific provider overrides
+provider_overrides:
+  Open-Meteo: 0.95
+  IMD: 0.98
+  citizen_form: 0.60
+

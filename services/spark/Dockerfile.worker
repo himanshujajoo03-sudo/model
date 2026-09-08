@@ -1,0 +1,51 @@
+FROM spark:3.5.3
+
+USER root
+
+# Fix apt directories
+RUN mkdir -p /var/lib/apt/lists/partial
+
+# Install curl for downloading JARs
+RUN apt-get update -qq && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download Spark-Kafka connector JARs
+RUN curl -sL -o /opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.3.jar \
+      "https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.5.3/spark-sql-kafka-0-10_2.12-3.5.3.jar" && \
+    curl -sL -o /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.3.jar \
+      "https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.5.3/spark-token-provider-kafka-0-10_2.12-3.5.3.jar" && \
+    curl -sL -o /opt/spark/jars/kafka-clients-3.6.1.jar \
+      "https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.6.1/kafka-clients-3.6.1.jar" && \
+    curl -sL -o /opt/spark/jars/spark-streaming-kafka-0-10_2.12-3.5.3.jar \
+      "https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kafka-0-10_2.12/3.5.3/spark-streaming-kafka-0-10_2.12-3.5.3.jar" && \
+    curl -sL -o /opt/spark/jars/commons-pool2-2.12.0.jar \
+      "https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.12.0/commons-pool2-2.12.0.jar" && \
+    echo "Kafka JARs installed"
+
+# Install Python dependencies (no confluent-kafka on Python 3.8)
+RUN pip3 install --target /opt/spark/python-deps --no-cache-dir \
+    numpy pyyaml psycopg2-binary && \
+    chmod -R 755 /opt/spark/python-deps
+
+# Copy ML library
+COPY services/ml/ /opt/spark/ml/
+
+# Copy Spark jobs
+COPY services/spark/jobs/ /opt/spark/jobs/
+COPY services/spark/requirements.txt /opt/spark/requirements.txt
+
+# Install Spark job dependencies
+RUN pip3 install --target /opt/spark/python-deps --no-cache-dir -r /opt/spark/requirements.txt && \
+    chmod -R 755 /opt/spark/python-deps
+
+# Create checkpoint directory
+RUN mkdir -p /data/checkpoints /data/logs/dead_letter && chown -R spark:spark /data
+
+USER spark
+WORKDIR /opt/spark
+
+ENV PYTHONPATH="/opt/spark/python-deps:${PYTHONPATH}"
+
+# Start Spark worker in foreground, then tail logs
+CMD /opt/spark/sbin/start-worker.sh spark://spark-master:7077 --webui-port 8081 && \
+    tail -f /opt/spark/logs/spark--org.apache.spark.deploy.worker.Worker-*.out

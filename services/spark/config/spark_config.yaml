@@ -1,0 +1,23 @@
+# Spark job configuration
+# Source of truth: 01_ARCHITECTURE.md, 03_KAFKA_CONTRACT.md
+
+kafka:
+  bootstrap_servers: kafka:9092
+  topics:
+    raw:
+      - weather.raw
+      - citizen.raw
+      - social.raw
+      - government.raw
+    processed: weather.processed
+    events: weather.events
+    verified: weather.verified
+
+checkpoint:
+  streaming: /data/checkpoints/spark_streaming
+  pg_writer: /data/checkpoints/pg_writer
+
+processing:
+  write_processed_topic: false  # Set to true for debugging
+  micro_batch_interval: 10     # seconds
+  recent_events_window_minutes: 30

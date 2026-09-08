@@ -1,0 +1,97 @@
+{
+  "_description": "Deterministic test fixtures for Open-Meteo adapter. These simulate severe weather API responses for pipeline testing. NOT live weather data.",
+  "_warning": "FIXTURE DATA — not real weather observations",
+
+  "thunderstorm_mumbai": {
+    "_label": "Thunderstorm in Mumbai — WMO code 95",
+    "_use": "Pipeline integration test: Open-Meteo → Kafka → Spark → PostgreSQL → FastAPI",
+    "latitude": 19.076,
+    "longitude": 72.878,
+    "current": {
+      "time": "2026-09-02T21:30",
+      "interval": 900,
+      "temperature_2m": 27.3,
+      "relative_humidity_2m": 94,
+      "precipitation": 18.5,
+      "weather_code": 95,
+      "wind_speed_10m": 42.1,
+      "wind_direction_10m": 215
+    },
+    "expected": {
+      "source_type": "weather_api",
+      "source_name": "Open-Meteo",
+      "city": "Mumbai",
+      "latitude": 19.076,
+      "longitude": 72.878,
+      "event_category": "thunderstorm",
+      "severity": "moderate",
+      "event_timestamp_format": "ISO 8601 UTC ending with Z"
+    }
+  },
+
+  "heatwave_nagpur": {
+    "_label": "Heatwave in Nagpur — temperature-based detection",
+    "_use": "Measurement-based event detection test",
+    "latitude": 21.146,
+    "longitude": 79.088,
+    "current": {
+      "time": "2026-09-02T14:00",
+      "interval": 900,
+      "temperature_2m": 44.2,
+      "relative_humidity_2m": 15,
+      "precipitation": 0.0,
+      "weather_code": 0,
+      "wind_speed_10m": 8.3,
+      "wind_direction_10m": 290
+    },
+    "expected": {
+      "source_type": "weather_api",
+      "source_name": "Open-Meteo",
+      "city": "Nagpur",
+      "latitude": 21.146,
+      "longitude": 79.088,
+      "event_category": "heatwave",
+      "severity": "extreme"
+    }
+  },
+
+  "benign_nashik": {
+    "_label": "Benign overcast in Nashik — should be skipped",
+    "_use": "Verify benign weather is correctly not produced as an event",
+    "latitude": 19.997,
+    "longitude": 73.790,
+    "current": {
+      "time": "2026-09-02T21:30",
+      "interval": 900,
+      "temperature_2m": 22.8,
+      "relative_humidity_2m": 65,
+      "precipitation": 0.0,
+      "weather_code": 3,
+      "wind_speed_10m": 12.6,
+      "wind_direction_10m": 180
+    },
+    "expected": {
+      "result": "SKIPPED — benign weather code 3 (overcast)"
+    }
+  },
+
+  "snow_unsupported": {
+    "_label": "Snow in Shimla — WMO code 73, should be skipped as unsupported",
+    "_use": "Verify snow codes are NOT mapped to fog or any other category",
+    "latitude": 31.105,
+    "longitude": 77.170,
+    "current": {
+      "time": "2026-09-02T21:30",
+      "interval": 900,
+      "temperature_2m": -2.1,
+      "relative_humidity_2m": 85,
+      "precipitation": 8.2,
+      "weather_code": 73,
+      "wind_speed_10m": 25.0,
+      "wind_direction_10m": 310
+    },
+    "expected": {
+      "result": "SKIPPED — snow code 73 not in canonical taxonomy"
+    }
+  }
+}

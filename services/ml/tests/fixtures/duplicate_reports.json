@@ -1,0 +1,30 @@
+[
+  {
+    "source_id": "dup_src_01",
+    "source_url": "https://news.example.com/mumbai-rain-101",
+    "latitude": 19.076,
+    "longitude": 72.8777,
+    "timestamp": "2026-09-01T10:00:00Z",
+    "category": "heavy_rainfall",
+    "description": "Heavy torrential rainfall reported in Mumbai suburbs causing severe delays."
+  },
+  {
+    "source_id": "dup_src_01",
+    "source_url": "https://news.example.com/mumbai-rain-101",
+    "latitude": 19.076,
+    "longitude": 72.8777,
+    "timestamp": "2026-09-01T10:02:00Z",
+    "category": "heavy_rainfall",
+    "description": "Heavy torrential rainfall reported in Mumbai suburbs causing severe delays."
+  },
+  {
+    "source_id": "dup_src_01",
+    "source_url": "https://news.example.com/mumbai-rain-101",
+    "latitude": 19.076,
+    "longitude": 72.8777,
+    "timestamp": "2026-09-01T10:03:00Z",
+    "category": "heavy_rainfall",
+    "description": "Heavy torrential rain in Mumbai suburbs causing major delays."
+  }
+]
+

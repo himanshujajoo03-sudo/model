@@ -1,0 +1,45 @@
+# ─── Git ──────────────────────────────────────────────
+.git
+.gitignore
+
+# ─── Documentation ────────────────────────────────────
+docs/
+*.md
+!services/*/README.md
+
+# ─── Environment ──────────────────────────────────────
+.env
+.env.example
+.env.local
+
+# ─── Data (runtime volumes) ───────────────────────────
+data/
+
+# ─── Models (not baked into images) ───────────────────
+models/
+!models/event_classifier/
+
+# ─── Training (offline only) ──────────────────────────
+training/
+
+# ─── Python ───────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ─── Node ─────────────────────────────────────────────
+node_modules/
+services/frontend/dist/
+
+# ─── Tests ────────────────────────────────────────────
+tests/
+services/ml/tests/
+services/api/tests/
+
+# ─── IDE ──────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ─── Scripts ──────────────────────────────────────────
+scripts/

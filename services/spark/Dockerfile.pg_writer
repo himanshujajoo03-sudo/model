@@ -1,0 +1,50 @@
+FROM spark:3.5.3
+
+USER root
+
+# Fix apt directories
+RUN mkdir -p /var/lib/apt/lists/partial
+
+# Install curl for downloading JARs
+RUN apt-get update -qq && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download Spark-Kafka connector JARs (same as stream processor)
+RUN curl -sL -o /opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.3.jar \
+      "https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.5.3/spark-sql-kafka-0-10_2.12-3.5.3.jar" && \
+    curl -sL -o /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.3.jar \
+      "https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.5.3/spark-token-provider-kafka-0-10_2.12-3.5.3.jar" && \
+    curl -sL -o /opt/spark/jars/kafka-clients-3.6.1.jar \
+      "https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.6.1/kafka-clients-3.6.1.jar" && \
+    curl -sL -o /opt/spark/jars/spark-streaming-kafka-0-10_2.12-3.5.3.jar \
+      "https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kafka-0-10_2.12/3.5.3/spark-streaming-kafka-0-10_2.12-3.5.3.jar" && \
+    curl -sL -o /opt/spark/jars/commons-pool2-2.12.0.jar \
+      "https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.12.0/commons-pool2-2.12.0.jar" && \
+    echo "Kafka JARs installed"
+
+# Install Python dependencies (psycopg2 for PostgreSQL, numpy/pyyaml for ML imports)
+RUN pip3 install --target /opt/spark/python-deps --no-cache-dir \
+    numpy pyyaml psycopg2-binary \
+    "scikit-learn==1.3.2" joblib && \
+    chmod -R 755 /opt/spark/python-deps
+
+# Copy Spark jobs
+COPY services/spark/jobs/pg_writer.py /opt/spark/jobs/pg_writer.py
+
+# Copy ML library (credibility, dedup, verification, classifier, utils)
+COPY services/ml /opt/spark/ml
+
+# Create checkpoint directory
+RUN mkdir -p /data/checkpoints/pg_writer && chown -R spark:spark /data
+
+USER spark
+WORKDIR /opt/spark
+
+ENV PYTHONPATH="/opt/spark/python-deps:/opt/spark:/opt/spark/ml:/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip:${PYTHONPATH}"
+
+# Run the PG writer using spark-submit
+CMD ["/opt/spark/bin/spark-submit", \
+     "--master", "local[*]", \
+     "--driver-memory", "512m", \
+     "--executor-memory", "512m", \
+     "/opt/spark/jobs/pg_writer.py"]

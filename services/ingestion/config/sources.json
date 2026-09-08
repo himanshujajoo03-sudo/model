@@ -1,0 +1,29 @@
+{
+  "weather_api": {
+    "provider": "open-meteo",
+    "base_url": "https://api.open-meteo.com/v1",
+    "poll_interval_seconds": 300,
+    "cities": [
+      {"name": "Mumbai", "lat": 19.076, "lon": 72.878},
+      {"name": "Nagpur", "lat": 21.146, "lon": 79.088},
+      {"name": "Nashik", "lat": 19.998, "lon": 73.789}
+    ]
+  },
+  "rss": {
+    "feeds": [
+      "https://www.gdacs.org/xml/rss.xml",
+      "https://reliefweb.int/updates/rss.xml?advanced-search=%28PC131%29"
+    ],
+    "poll_interval_seconds": 300
+  },
+  "website": {
+    "allowlist_file": "config/website_allowlist.json"
+  },
+  "social": {
+    "type": "simulated",
+    "feed_file": null
+  },
+  "government": {
+    "data_dir": "/data/raw/government"
+  }
+}

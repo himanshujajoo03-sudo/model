@@ -1,0 +1,63 @@
+[
+  {
+    "source_id": "src_001",
+    "source_name": "Open-Meteo",
+    "source_type": "weather_api",
+    "latitude": 19.076,
+    "longitude": 72.878,
+    "city": "Mumbai",
+    "timestamp": "2026-09-01T10:00:00Z",
+    "ingestion_timestamp": "2026-09-01T10:05:00Z",
+    "category": "heavy_rainfall",
+    "description": "Continuous torrential rain recorded in Mumbai station."
+  },
+  {
+    "source_id": "src_002",
+    "source_name": "NDTV Weather",
+    "source_type": "rss",
+    "latitude": 19.080,
+    "longitude": 72.880,
+    "city": "Mumbai",
+    "timestamp": "2026-09-01T10:05:00Z",
+    "ingestion_timestamp": "2026-09-01T10:10:00Z",
+    "category": "flood",
+    "description": "Severe waterlogging and flooding reported across submerged roads in Kurla, Mumbai."
+  },
+  {
+    "source_id": "src_003",
+    "source_name": "citizen_form",
+    "source_type": "citizen",
+    "latitude": 19.075,
+    "longitude": 72.877,
+    "city": "Mumbai",
+    "timestamp": "2026-09-01T10:10:00Z",
+    "ingestion_timestamp": "2026-09-01T10:12:00Z",
+    "category": "flood",
+    "description": "Knee-deep water and flooded roads near Dadar station. Water level rising fast."
+  },
+  {
+    "source_id": "src_004",
+    "source_name": "simulated_social",
+    "source_type": "social",
+    "latitude": 19.070,
+    "longitude": 72.875,
+    "city": "Mumbai",
+    "timestamp": "2026-09-01T10:15:00Z",
+    "ingestion_timestamp": "2026-09-01T10:18:00Z",
+    "category": "flood",
+    "description": "Heavy flood waters entering low-lying houses in Mumbai."
+  },
+  {
+    "source_id": "src_005",
+    "source_name": "IMD",
+    "source_type": "website",
+    "latitude": 19.078,
+    "longitude": 72.879,
+    "city": "Mumbai",
+    "timestamp": "2026-09-01T10:02:00Z",
+    "ingestion_timestamp": "2026-09-01T10:04:00Z",
+    "category": "heavy_rainfall",
+    "description": "Extremely heavy rain alert issued for Mumbai suburban district."
+  }
+]
+

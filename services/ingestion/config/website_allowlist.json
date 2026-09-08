@@ -1,0 +1,7 @@
+{
+  "allowed_urls": [
+    "https://mausam.imd.gov.in",
+    "https://www.ndtv.com/weather"
+  ],
+  "notes": "MVP allowlist — expand as needed"
+}
