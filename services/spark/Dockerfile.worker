@@ -38,8 +38,9 @@ COPY services/spark/requirements.txt /opt/spark/requirements.txt
 RUN pip3 install --target /opt/spark/python-deps --no-cache-dir -r /opt/spark/requirements.txt && \
     chmod -R 755 /opt/spark/python-deps
 
-# Create checkpoint directory
-RUN mkdir -p /data/checkpoints /data/logs/dead_letter && chown -R spark:spark /data
+# Create checkpoint and cache directories for spark user
+RUN mkdir -p /data/checkpoints /data/logs/dead_letter && chown -R spark:spark /data && \
+    mkdir -p /home/spark/.cache && chown -R spark:spark /home/spark
 
 USER spark
 WORKDIR /opt/spark

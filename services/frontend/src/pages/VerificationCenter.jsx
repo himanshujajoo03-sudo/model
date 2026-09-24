@@ -66,9 +66,12 @@ const SEVERITY_OPTIONS = [
 ]
 const SOURCE_OPTIONS = [
   { value: '', label: 'All Sources', icon: '📡' },
-  { value: 'weather_api', label: 'Weather API', icon: '🌐', subtitle: 'Official sensors' },
-  { value: 'synthetic', label: 'Synthetic Doppler', icon: '🛰️', subtitle: 'Radar fusion' },
-  { value: 'citizen', label: 'Citizen Reports', icon: '👥', subtitle: 'Ground truth' },
+  { value: 'reanalysis_archive', label: 'ECMWF ERA5 Reanalysis', icon: '🏛️', subtitle: 'Copernicus climate archive' },
+  { value: 'synoptic_telemetry', label: 'Open-Meteo Synoptic AWS', icon: '🛰️', subtitle: 'Surface weather telemetry' },
+  { value: 'government_warning', label: 'NDMA SACHET Disaster Warning', icon: '🇮🇳', subtitle: 'National disaster alerts' },
+  { value: 'global_alert', label: 'GDACS Disaster System', icon: '🌐', subtitle: 'Global hazard alert feed' },
+  { value: 'open_government_data', label: 'Data.gov.in Open Data', icon: '📊', subtitle: 'National Open Data' },
+  { value: 'citizen_report', label: 'Citizen Reports (Mastodon)', icon: '👥', subtitle: 'Decentralized citizen reports' },
 ]
 
 const VERIFY_ACTIONS = [
@@ -480,18 +483,18 @@ export default function VerificationCenter() {
   }), [stats, total, vStats])
 
   return (
-    <div className="flex h-screen bg-slate-50/70 overflow-hidden">
+    <div className="flex min-h-screen bg-slate-50/70">
       {/* Unified Sidebar */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 bg-slate-50/70 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 bg-slate-50/70">
         <Header />
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden flex bg-slate-50/70">
+        <div className="flex-1 flex bg-slate-50/70">
           {/* Left: Queue */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 min-w-0 scrollbar-thin">
+          <div className="flex-1 px-5 py-4 min-w-0">
             {/* Page title + Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
               <div>
@@ -939,7 +942,7 @@ export default function VerificationCenter() {
                 <textarea
                   value={officerRemark}
                   onChange={(e) => setOfficerRemark(e.target.value)}
-                  placeholder="e.g. Cross-referenced with IMD Nowcast bulletin, validated telemetry corroboration."
+                  placeholder="e.g. Cross-referenced with Open-Meteo Synoptic Telemetry / NDMA SACHET bulletin, validated telemetry corroboration."
                   rows={2}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white resize-none"
                 />

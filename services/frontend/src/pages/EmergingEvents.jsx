@@ -188,13 +188,13 @@ function EmergingMap({ events, selectedEvent, onSelectEvent }) {
           zoomControl={true}
           attributionControl={false}
         >
+          {/* MapTiler Streets Base Tiles */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-            maxZoom={19} subdomains="abcd"
-          />
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
-            maxZoom={19} subdomains="abcd" opacity={0.7}
+            url={`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_API_KEY}`}
+            maxZoom={19}
+            tileSize={512}
+            zoomOffset={-1}
+            attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
           />
 
           {events.map((event) => {
@@ -425,16 +425,16 @@ export default function EmergingEvents() {
   }, [rankedEvents])
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex min-h-screen bg-white">
       {/* Unified Sidebar */}
       <Sidebar />
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
         <Header />
 
         {/* Page content */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-white">
+        <div className="flex-1 flex flex-col bg-white">
           {/* Title + Methodology */}
           <div className="px-6 py-4 bg-white border-b border-slate-200 flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
@@ -554,9 +554,9 @@ export default function EmergingEvents() {
           )}
 
           {/* Main workspace: Queue + Map + Evidence */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex">
             {/* Left: Queue + Evidence */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 min-w-0">
+            <div className="flex-1 px-6 py-4 min-w-0">
               {loading && rankedEvents.length === 0 ? (
                 <div className="space-y-3">
                   {Array.from({ length: 4 }).map((_, i) => (

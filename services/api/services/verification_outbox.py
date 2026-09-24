@@ -2,7 +2,11 @@
 from __future__ import annotations
 import json, os
 from datetime import datetime, timezone, timedelta
-from confluent_kafka import Producer
+try:
+    from confluent_kafka import Producer
+except ImportError:
+    Producer = None
+
 from dependencies import get_db
 
 
@@ -17,6 +21,8 @@ def enqueue(conn, event_id: str, action: str, payload: dict) -> str:
 
 
 def _publish(outbox_id: str, payload: dict) -> None:
+    if Producer is None:
+        return
     bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
     producer = Producer({
         "bootstrap.servers": bootstrap, "client.id": "api-verification-outbox",

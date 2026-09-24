@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY services/ingestion/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt scikit-learn joblib
+
+COPY services/ingestion/ /app/services/ingestion/
+COPY services/ml/ /app/services/ml/
+
+ENV PYTHONPATH=/app/services/ml:/app/services/ingestion:/app
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app/services/ingestion
+CMD ["python", "critical_consumer.py"]

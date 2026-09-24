@@ -62,12 +62,12 @@ export default function AnalyticsLayout() {
   const isActive = (href) => location.pathname === href
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex min-h-screen bg-white">
       {/* Unified Sidebar */}
       <Sidebar />
 
       {/* Main Area */}
-      <div className="flex flex-col flex-1 min-w-0 bg-white overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 bg-white">
         {/* Unified Header */}
         <Header />
 
@@ -174,7 +174,7 @@ export default function AnalyticsLayout() {
         </div>
 
         {/* Content Outlet */}
-        <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4 bg-white scrollbar-thin">
+        <div className="flex-1 px-4 lg:px-6 py-4 bg-white">
           <Outlet />
         </div>
       </div>

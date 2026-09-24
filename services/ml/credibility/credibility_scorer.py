@@ -10,13 +10,6 @@ from pathlib import Path
 import yaml
 from typing import Optional, Any
 
-from classifier.rules import categories_are_compatible
-from config.config_loader import load_ml_config
-from credibility.source_weights import get_source_trust, count_corroborations
-from utils.event_schema import NormalizedEvent
-from utils.geo import haversine_km, check_city_bounding_box
-from utils.time_utils import check_future_timestamp, parse_timestamp, time_diff_minutes
-from utils.validation import validate_score, InvalidScoreError
 try:
     from ..classifier.rules import categories_are_compatible
     from ..config.config_loader import load_ml_config

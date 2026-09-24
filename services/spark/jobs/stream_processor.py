@@ -289,6 +289,8 @@ def _rebuild_canonical(event_dict: dict) -> dict:
         "ai": event_dict.get("ai"),
         "verification": event_dict.get("verification"),
     }
+    if "spark_processed_at" in event_dict:
+        result["spark_processed_at"] = event_dict.get("spark_processed_at")
     return result
 
 
@@ -658,11 +660,13 @@ def _enrich_and_write_events(batch_df: DataFrame, batch_id: int) -> None:
         event_dict["ai"] = ai_payload
         # Apply ML enrichment
         enriched = _enrich_event(event_dict, recent_events)
+        enriched["spark_processed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
         # Keep the current micro-batch as duplicate-detection context for later rows.
         recent_events.append(enriched)
 
         # Rebuild nested canonical structure for output
         output_event = _rebuild_canonical(enriched)
+        output_event["spark_processed_at"] = enriched["spark_processed_at"]
 
         # Build Kafka envelope per 03_KAFKA_CONTRACT.md §3
         envelope = {

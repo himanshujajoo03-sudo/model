@@ -8,6 +8,7 @@ export default function Header() {
     toggleAlertDrawer,
     audioMuted,
     toggleAudioMuted,
+    openCitizenReportModal,
   } = useLayoutStore()
 
   const handleAudioToggle = () => {
@@ -17,7 +18,7 @@ export default function Header() {
   }
 
   return (
-    <header className="h-[56px] bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10 select-none">
+    <header className="sticky top-0 h-[56px] bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-20 select-none">
       {/* Left: Mobile Drawer Button */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Mobile Hamburger Toggle */}
@@ -35,8 +36,28 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Right: Audio Siren, Notification Bell & Duty Profile */}
+      {/* Right: Report an Event, Audio Siren, Notification Bell & Duty Profile */}
       <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Polished Primary Action: Report an Event */}
+        <button
+          type="button"
+          onClick={openCitizenReportModal}
+          id="header-report-event-btn"
+          className="group relative inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 h-[34px] sm:h-[36px] bg-gradient-to-b from-blue-600 via-blue-700 to-blue-800 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 active:from-blue-800 active:to-blue-900 text-white rounded-xl text-xs font-bold tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_2px_4px_rgba(30,58,138,0.25),0_1px_2px_rgba(30,58,138,0.15)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_12px_rgba(37,99,235,0.35)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.25)] border border-blue-900/80 transition-all duration-150 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer select-none whitespace-nowrap"
+          title="Report an observed weather event or local hazard"
+        >
+          {/* Weather Warning / Observation Icon */}
+          <span className="relative flex items-center justify-center w-5 h-5 rounded-lg bg-white/15 text-white flex-shrink-0 group-hover:bg-white/25 transition-colors">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+              <path d="M12 11v3" stroke="#FDE047" strokeWidth="2.2" />
+              <circle cx="12" cy="17" r="0.75" fill="#FDE047" stroke="#FDE047" />
+            </svg>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute -top-0.5 -right-0.5 ring-1.5 ring-blue-700 animate-pulse" />
+          </span>
+          <span className="font-bold text-xs tracking-tight text-white">Report an Event</span>
+        </button>
+
         {/* Audio Siren Toggle Button */}
         <button
           type="button"

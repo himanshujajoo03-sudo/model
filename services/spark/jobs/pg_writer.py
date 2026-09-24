@@ -492,6 +492,27 @@ def _upsert_canonical_event(conn, event: dict, canonical_event_id, verification_
     classified_cat = ai.get('classified_category')
     cred_reasons = ai.get('credibility_reasons') or []
     ver_status = verification.get('status') or 'pending'
+    db_written_at = datetime.now(timezone.utc)
+    spark_processed_at = _parse_timestamp(event.get("spark_processed_at"))
+
+    # Generate embedding vector for semantic search & duplicate detection (graceful degradation)
+    # Stored/indexed canonical events use "passage: " prefix per intfloat/multilingual-e5-small spec
+    embedding_vec = None
+    text_to_embed = description or category
+    if text_to_embed:
+        try:
+            from ml.embeddings.embedder import embed
+            raw_vec = embed(text_to_embed, prefix="passage: ")
+            if raw_vec:
+                embedding_vec = str(raw_vec)
+        except Exception:
+            try:
+                from services.ml.embeddings.embedder import embed
+                raw_vec = embed(text_to_embed, prefix="passage: ")
+                if raw_vec:
+                    embedding_vec = str(raw_vec)
+            except Exception:
+                embedding_vec = None
 
     try:
         with conn.cursor() as cur:
@@ -573,7 +594,10 @@ def _upsert_canonical_event(conn, event: dict, canonical_event_id, verification_
                             WHEN %s::text[] IS NOT NULL AND array_length(%s::text[], 1) > 0
                             THEN %s::text[]
                             ELSE verification_reasons
-                        END
+                        END,
+                        db_written_at = %s,
+                        spark_processed_at = COALESCE(%s, spark_processed_at),
+                        embedding = COALESCE(%s::vector, embedding)
                     WHERE canonical_event_id = %s
                     RETURNING canonical_event_id
                 """, (
@@ -587,6 +611,8 @@ def _upsert_canonical_event(conn, event: dict, canonical_event_id, verification_
                     effective_ver_status or 'pending', ver_priority.get(effective_ver_status, 1) if effective_ver_status else 0,
                     effective_ver_status or 'pending',
                     effective_ver_reasons, effective_ver_reasons, effective_ver_reasons,
+                    db_written_at, spark_processed_at,
+                    embedding_vec,
                     canonical_event_id,
                 ))
                 result = cur.fetchone()
@@ -608,7 +634,9 @@ def _upsert_canonical_event(conn, event: dict, canonical_event_id, verification_
                         contributing_sources,
                         classified_category, classification_confidence,
                         credibility_score, credibility_reasons, cluster_id,
-                        verification_status, verification_reasons
+                        verification_status, verification_reasons,
+                        spark_processed_at, db_written_at,
+                        embedding
                     ) VALUES (
                         %s, %s, %s, %s,
                         %s, %s,
@@ -617,7 +645,9 @@ def _upsert_canonical_event(conn, event: dict, canonical_event_id, verification_
                         ARRAY[%s],
                         %s, %s, %s,
                         %s, %s,
-                        %s, %s
+                        %s, %s,
+                        %s, %s,
+                        %s
                     )
                 """, (
                     ce_id, category, severity, description,
@@ -628,6 +658,8 @@ def _upsert_canonical_event(conn, event: dict, canonical_event_id, verification_
                     classified_cat, confidence, credibility,
                     cred_reasons, _safe_uuid(ai.get("cluster_id")),
                     verification_status, verification_reasons or [],
+                    spark_processed_at, db_written_at,
+                    embedding_vec,
                 ))
                 logger.info("Created new canonical event %s for %s/%s",
                             ce_id[:8], loc.get('city', '?'), category)
@@ -665,7 +697,7 @@ def _upsert_event(conn, event: dict) -> tuple[bool, bool]:
 
     # Parse timestamps
     event_ts = _parse_timestamp(event.get("timestamp"))
-    ingestion_ts = _parse_timestamp(event.get("ingestion_timestamp"))
+    ingestion_ts = _parse_timestamp(event.get("ingestion_timestamp")) or datetime.now(timezone.utc)
     verification_ts = _parse_timestamp(verification.get("verification_timestamp"))
 
     # Validate coordinates
@@ -768,7 +800,7 @@ def _upsert_event(conn, event: dict) -> tuple[bool, bool]:
 
     params = {
         "event_id": event_id,
-        "source_id": event.get("source_id"),
+        "source_id": event.get("source_id") or str(uuid.uuid4()),
         "source_type": source_type,
         "source_name": event.get("source_name"),
         "source_url": event.get("source_url"),
@@ -895,7 +927,7 @@ def _compute_ml_enrichment(conn, event: dict, existing_ce_id: str | None, indepe
     source_type = event.get("source_type", "")
     event_ts = _parse_timestamp(event.get("timestamp"))
 
-    # ── 1. Duplicate detection with recent events context ──
+    # ── 1. Duplicate detection with recent events context & pgvector semantic similarity ──
     dup_score = 0.0
     try:
         with conn.cursor() as sp_cur:
@@ -904,6 +936,69 @@ def _compute_ml_enrichment(conn, event: dict, existing_ce_id: str | None, indepe
         current_event_id = event.get("event_id")
         recent_events = _query_recent_events(conn, category, latitude, longitude, event_ts, exclude_event_id=current_event_id)
         ml_event = _normalize_for_ml(event)
+
+        # FIX A & FIX B: Wire pgvector query into the live pipeline
+        # Generate embedding for incoming event with "query: " prefix per intfloat/multilingual-e5-small spec
+        text_to_embed = ev.get("description") or category
+        incoming_emb = None
+        if text_to_embed:
+            try:
+                from ml.embeddings.embedder import embed
+                incoming_emb = embed(text_to_embed, prefix="query: ")
+            except Exception:
+                try:
+                    from services.ml.embeddings.embedder import embed
+                    incoming_emb = embed(text_to_embed, prefix="query: ")
+                except Exception:
+                    incoming_emb = None
+
+        if incoming_emb:
+            ml_event["embedding"] = incoming_emb
+            similar_canonicals = []
+            try:
+                from ml.embeddings.embedder import find_similar_canonical_events
+                similar_canonicals = find_similar_canonical_events(
+                    conn, incoming_emb, hours=24, limit=5, min_similarity=0.50
+                )
+            except Exception:
+                try:
+                    from services.ml.embeddings.embedder import find_similar_canonical_events
+                    similar_canonicals = find_similar_canonical_events(
+                        conn, incoming_emb, hours=24, limit=5, min_similarity=0.50
+                    )
+                except Exception as exc:
+                    logger.warning("pgvector find_similar_canonical_events failed (%s), degrading to Jaccard-only", exc)
+                    similar_canonicals = []
+
+            if similar_canonicals:
+                # 1. Attach pgvector cosine_similarity to any recent events sharing canonical_event_id
+                sim_by_ce = {str(c["canonical_event_id"]): c["cosine_similarity"] for c in similar_canonicals if c.get("canonical_event_id")}
+                for rec in recent_events:
+                    ce_id = rec.get("canonical_event_id")
+                    if ce_id and ce_id in sim_by_ce:
+                        rec["cosine_similarity"] = sim_by_ce[ce_id]
+
+                # 2. Add matched canonical events as candidate records so semantic similarity
+                # participates in duplicate scoring even if source events were outside recent window
+                for ce in similar_canonicals:
+                    ce_id = str(ce.get("canonical_event_id")) if ce.get("canonical_event_id") else None
+                    if not any(r.get("canonical_event_id") == ce_id for r in recent_events):
+                        recent_events.append({
+                            "event": {
+                                "category": ce.get("event_category"),
+                                "severity": ce.get("severity"),
+                                "description": ce.get("description") or "",
+                            },
+                            "location": {
+                                "latitude": float(ce["latitude"]) if ce.get("latitude") is not None else None,
+                                "longitude": float(ce["longitude"]) if ce.get("longitude") is not None else None,
+                                "city": ce.get("city"),
+                            },
+                            "timestamp": ce.get("last_seen").isoformat() if hasattr(ce.get("last_seen"), "isoformat") else str(ce.get("last_seen") or ""),
+                            "canonical_event_id": ce_id,
+                            "cosine_similarity": ce.get("cosine_similarity"),
+                        })
+
         dup_score = compute_duplicate_score(ml_event, recent_events)
         ai["duplicate_score"] = round(dup_score, 3)
         with conn.cursor() as sp_cur:
@@ -1035,7 +1130,8 @@ def _query_recent_events(conn, category, latitude, longitude, event_ts, window_m
                     SELECT DISTINCT ON (source_id)
                            event_category, severity, description,
                            latitude, longitude, city,
-                           event_timestamp, source_id, source_url
+                           event_timestamp, source_id, source_url,
+                           canonical_event_id
                     FROM events
                     WHERE event_timestamp >= %s - (%s)::interval
                     AND event_timestamp <= %s + (%s)::interval
@@ -1048,7 +1144,8 @@ def _query_recent_events(conn, category, latitude, longitude, event_ts, window_m
                     SELECT DISTINCT ON (source_id)
                            event_category, severity, description,
                            latitude, longitude, city,
-                           event_timestamp, source_id, source_url
+                           event_timestamp, source_id, source_url,
+                           canonical_event_id
                     FROM events
                     WHERE event_timestamp >= %s - (%s)::interval
                     AND event_timestamp <= %s + (%s)::interval
@@ -1073,6 +1170,7 @@ def _query_recent_events(conn, category, latitude, longitude, event_ts, window_m
                     "timestamp": r[6].isoformat() if r[6] else None,
                     "source_id": r[7],
                     "source_url": r[8],
+                    "canonical_event_id": str(r[9]) if r[9] else None,
                 })
             return recent
     except Exception as e:

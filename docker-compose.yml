@@ -12,10 +12,11 @@ services:
     ports:
       - "2181:2181"
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/2181' || exit 1"]
+      test: ["CMD-SHELL", "cub zk-ready 2181 5 || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
     networks:
       - weather-net
@@ -32,8 +33,9 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_HEAP_OPTS: "-Xmx384m -Xms128m"
       KAFKA_JVM_PERFORMANCE_OPTS: "-server -XX:+UseG1GC"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -79,9 +81,11 @@ services:
     networks:
       - weather-net
 
-  # ── PostgreSQL + PostGIS ───────────────────────────
+  # ── PostgreSQL + PostGIS + pgvector ────────────────
   postgres:
-    image: postgis/postgis:15-3.4
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
     container_name: weather-postgres
     environment:
       POSTGRES_DB: weatherdb
@@ -130,7 +134,8 @@ services:
     command: >-
       "for topic in weather.raw citizen.raw social.raw government.raw weather.processed weather.events weather.verified; do
        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic $$topic --partitions 1 --replication-factor 1;
-       done"
+       done &&
+       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic weather.critical --partitions 2 --replication-factor 1"
     networks:
       - weather-net
 
@@ -260,8 +265,50 @@ services:
       SYNTHETIC_ENABLED: ${SYNTHETIC_ENABLED:-true}
       OPENMETEO_POLL_INTERVAL_SECONDS: ${OPENMETEO_POLL_INTERVAL_SECONDS:-300}
       RSS_POLL_INTERVAL_SECONDS: ${RSS_POLL_INTERVAL_SECONDS:-300}
+      OPEN_METEO_BASE_URL: ${OPEN_METEO_BASE_URL:-https://api.open-meteo.com/v1}
+      OPEN_METEO_ARCHIVE_URL: ${OPEN_METEO_ARCHIVE_URL:-https://archive-api.open-meteo.com/v1}
+      GDACS_EARTHQUAKE_FEED_URL: ${GDACS_EARTHQUAKE_FEED_URL:-https://gdacs.org/xml/rss_eq_24h.xml}
+      GDACS_CYCLONE_FEED_URL: ${GDACS_CYCLONE_FEED_URL:-https://gdacs.org/xml/rss_tc_7d.xml}
+      GDACS_FLOOD_FEED_URL: ${GDACS_FLOOD_FEED_URL:-https://gdacs.org/xml/rss_fl_7d.xml}
+      SACHET_FEED_URL: ${SACHET_FEED_URL:-https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml}
+      MASTODON_BASE_URL: ${MASTODON_BASE_URL:-}
+      MASTODON_ACCESS_TOKEN: ${MASTODON_ACCESS_TOKEN:-}
+      MASTODON_CLIENT_ID: ${MASTODON_CLIENT_ID:-}
+      MASTODON_CLIENT_SECRET: ${MASTODON_CLIENT_SECRET:-}
+      DATA_GOV_API_KEY: ${DATA_GOV_API_KEY:-}
+      DATA_GOV_RESOURCE_URL: ${DATA_GOV_RESOURCE_URL:-}
+      GOVERNMENT_DATA_DIR: ${GOVERNMENT_DATA_DIR:-/data/raw/government}
     volumes:
       - data_volume:/data
+      - ./services/ingestion:/app
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+  # ── Critical Fast-Path Consumer ────────────────────
+  critical-consumer:
+    build:
+      context: .
+      dockerfile: services/ingestion/Dockerfile.critical
+    container_name: weather-critical-consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: weatherdb
+      POSTGRES_USER: weather
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: postgresql://weather:${POSTGRES_PASSWORD}@postgres:5432/weatherdb
+      PYTHONUNBUFFERED: "1"
     restart: unless-stopped
     networks:
       - weather-net
@@ -315,6 +362,7 @@ services:
         condition: service_healthy
     environment:
       VITE_API_URL: http://localhost:8000/api/v1
+      VITE_MAPTILER_API_KEY: ${VITE_MAPTILER_API_KEY}
     ports:
       - "3000:5173"
     volumes:

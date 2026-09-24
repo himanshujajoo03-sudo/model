@@ -45,6 +45,7 @@ DUP_WEIGHTS = {
     "category": 0.15,
     "time": 0.10,
     "distance": 0.10,
+    "semantic": 0.25,
 }
 
 
@@ -61,6 +62,7 @@ def get_duplicate_config() -> dict[str, Any]:
             "category": float(weights.get("category", 0.15)),
             "time": float(weights.get("time", 0.10)),
             "distance": float(weights.get("distance", 0.10)),
+            "semantic": float(weights.get("semantic", 0.25)),
         },
         "probable_threshold": float(dup.get("probable_threshold", 0.85)),
         "possible_threshold": float(dup.get("possible_threshold", 0.60)),
@@ -180,6 +182,67 @@ def compute_duplicate_evidence(
     else:
         signals["distance"] = None
         missing_signals.append("distance")
+
+    # 7. Semantic embedding similarity -- optional signal alongside Jaccard text (§11)
+    # Check if a precomputed cosine similarity from pgvector <=> search is available on the candidate record
+    precomputed_sem = None
+    if hasattr(rec, "raw") and isinstance(rec.raw, dict):
+        precomputed_sem = rec.raw.get("cosine_similarity") if rec.raw.get("cosine_similarity") is not None else rec.raw.get("semantic_similarity")
+    if precomputed_sem is None and isinstance(recent, dict):
+        precomputed_sem = recent.get("cosine_similarity") if recent.get("cosine_similarity") is not None else recent.get("semantic_similarity")
+
+    if precomputed_sem is not None:
+        try:
+            sem_sim = max(0.0, min(1.0, float(precomputed_sem)))
+            signals["semantic"] = round(sem_sim, 3)
+        except (ValueError, TypeError):
+            signals["semantic"] = None
+    else:
+        # Fall back to in-memory embedding calculation if precomputed pgvector similarity is absent
+        curr_emb = getattr(curr, "embedding", None) or (curr.raw.get("embedding") if isinstance(getattr(curr, "raw", None), dict) else None)
+        rec_emb = getattr(rec, "embedding", None) or (rec.raw.get("embedding") if isinstance(getattr(rec, "raw", None), dict) else None)
+
+        # If embeddings are not attached, attempt lazy generation via embedder if available
+        # Incoming events use "query: ", stored/historical events use "passage: "
+        if curr_emb is None and curr.description:
+            try:
+                from ..embeddings.embedder import embed
+                curr_emb = embed(curr.description, prefix="query: ")
+            except Exception:
+                try:
+                    from embeddings.embedder import embed
+                    curr_emb = embed(curr.description, prefix="query: ")
+                except Exception:
+                    curr_emb = None
+
+        if rec_emb is None and rec.description:
+            try:
+                from ..embeddings.embedder import embed
+                rec_emb = embed(rec.description, prefix="passage: ")
+            except Exception:
+                try:
+                    from embeddings.embedder import embed
+                    rec_emb = embed(rec.description, prefix="passage: ")
+                except Exception:
+                    rec_emb = None
+
+        if curr_emb and rec_emb and len(curr_emb) == len(rec_emb) and len(curr_emb) > 0:
+            try:
+                from ..embeddings.embedder import compute_cosine_similarity
+                sem_sim = compute_cosine_similarity(curr_emb, rec_emb)
+            except Exception:
+                try:
+                    from embeddings.embedder import compute_cosine_similarity
+                    sem_sim = compute_cosine_similarity(curr_emb, rec_emb)
+                except Exception:
+                    dot = sum(a * b for a, b in zip(curr_emb, rec_emb))
+                    sem_sim = max(0.0, min(1.0, float(dot)))
+            signals["semantic"] = round(sem_sim, 3) if sem_sim is not None else None
+        else:
+            signals["semantic"] = None
+
+    if signals["semantic"] is None:
+        missing_signals.append("semantic")
 
     # Renormalize weights across only the AVAILABLE signals
     available_weight_sum = sum(weights[k] for k, v in signals.items() if v is not None)

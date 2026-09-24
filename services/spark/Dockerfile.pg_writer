@@ -22,10 +22,13 @@ RUN curl -sL -o /opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.3.jar \
       "https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.12.0/commons-pool2-2.12.0.jar" && \
     echo "Kafka JARs installed"
 
-# Install Python dependencies (psycopg2 for PostgreSQL, numpy/pyyaml for ML imports)
+# Copy Spark requirements
+COPY services/spark/requirements.txt /opt/spark/requirements.txt
+
+# Install Python dependencies (psycopg2 for PostgreSQL, numpy/pyyaml for ML imports, torch CPU, sentence-transformers)
 RUN pip3 install --target /opt/spark/python-deps --no-cache-dir \
-    numpy pyyaml psycopg2-binary \
-    "scikit-learn==1.3.2" joblib && \
+    "scikit-learn==1.3.2" joblib \
+    -r /opt/spark/requirements.txt && \
     chmod -R 755 /opt/spark/python-deps
 
 # Copy Spark jobs
@@ -34,8 +37,9 @@ COPY services/spark/jobs/pg_writer.py /opt/spark/jobs/pg_writer.py
 # Copy ML library (credibility, dedup, verification, classifier, utils)
 COPY services/ml /opt/spark/ml
 
-# Create checkpoint directory
-RUN mkdir -p /data/checkpoints/pg_writer && chown -R spark:spark /data
+# Create checkpoint and cache directories for spark user
+RUN mkdir -p /data/checkpoints/pg_writer && chown -R spark:spark /data && \
+    mkdir -p /home/spark/.cache && chown -R spark:spark /home/spark
 
 USER spark
 WORKDIR /opt/spark

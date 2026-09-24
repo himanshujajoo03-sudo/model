@@ -28,7 +28,7 @@ try:
     from ..classifier.rule_based_classifier import RuleBasedClassifier
     from ..classifier.trained_classifier import TrainedModelClassifier
     from ..config.config_loader import load_ml_config
-except ImportError:
+except (ImportError, ValueError):
     from classifier.rules import VALID_CATEGORIES
     from classifier.rule_based_classifier import RuleBasedClassifier
     from classifier.trained_classifier import TrainedModelClassifier

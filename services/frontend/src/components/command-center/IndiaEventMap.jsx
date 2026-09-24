@@ -81,11 +81,23 @@ function createRadarSimulationIcon(city) {
   })
 }
 
-// Custom Beacon Icon for the 3 active cities: Mumbai, Nagpur, Nashik
+// Custom Dynamic Beacon Icon for all Pan-India Active Cities
 function createCityBeaconIcon(city, isSelected) {
-  const iconEmoji = city.name === 'Mumbai' ? '🌆' : city.name === 'Nagpur' ? '🏙️' : '🏞️'
-  const regionLabel = city.name === 'Nagpur' ? 'Vidarbha' : (city.name === 'Nashik' || city.name === 'Nasik') ? 'Ghats' : 'Konkan'
-  const haloColor = isSelected ? '#2563EB' : city.color
+  const iconEmoji =
+    city.zone === 'North'
+      ? '🏔️'
+      : city.zone === 'South'
+      ? '🌴'
+      : city.zone === 'East'
+      ? '🌊'
+      : city.zone === 'Northeast'
+      ? '🌿'
+      : city.zone === 'Central'
+      ? '🏛️'
+      : '🌆'
+  const stateLabel = city.state || 'India'
+  const regionLabel = city.region || city.district || `${city.zone || 'Metropolitan'} Zone`
+  const haloColor = isSelected ? '#2563EB' : city.color || '#0284C7'
   const activeBorder = isSelected ? '2px solid #2563EB' : '1px solid #CBD5E1'
 
   return L.divIcon({
@@ -109,7 +121,7 @@ function createCityBeaconIcon(city, isSelected) {
           height:26px;
           border-radius:50%;
           background:#FFFFFF;
-          border:2.5px solid ${city.color};
+          border:2.5px solid ${city.color || '#2563EB'};
           box-shadow:0 3px 8px rgba(15,23,42,0.25);
           display:flex;
           align-items:center;
@@ -140,15 +152,15 @@ function createCityBeaconIcon(city, isSelected) {
           z-index:2;
         ">
           <div style="display:flex;align-items:center;gap:3px;">
-            <span style="width:4px;height:4px;border-radius:50%;background:${city.color};"></span>
-            <span>${city.name}</span>
+            <span style="width:4px;height:4px;border-radius:50%;background:${city.color || '#2563EB'};"></span>
+            <span style="font-weight:800;">${city.name}</span>
           </div>
-          <span style="font-size:8.5px;color:#64748B;font-weight:600;">Maharashtra · ${regionLabel}</span>
+          <span style="font-size:8.5px;color:#64748B;font-weight:600;">${stateLabel} · ${regionLabel}</span>
         </div>
       </div>
     `,
-    iconSize: [84, 56],
-    iconAnchor: [42, 13],
+    iconSize: [94, 56],
+    iconAnchor: [47, 13],
   })
 }
 
@@ -512,16 +524,18 @@ export default function IndiaEventMap() {
           zoom={5}
           minZoom={4}
           maxZoom={14}
+          scrollWheelZoom={false}
           style={{ height: '100%', width: '100%', background: '#FFFFFF' }}
           zoomControl={true}
           attributionControl={false}
         >
-          {/* Light CartoDB Positron Base Tiles */}
+          {/* MapTiler Streets Base Tiles */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+            url={`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_API_KEY}`}
             maxZoom={19}
-            subdomains="abcd"
-            opacity={0.9}
+            tileSize={512}
+            zoomOffset={-1}
+            attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
           />
 
           {/* Surrounding Countries */}
@@ -543,13 +557,7 @@ export default function IndiaEventMap() {
             />
           )}
 
-          {/* Clean CartoDB Geographic Boundary Labels */}
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
-            maxZoom={19}
-            subdomains="abcd"
-            opacity={0.7}
-          />
+
 
           {/* Handlers */}
           <MapController

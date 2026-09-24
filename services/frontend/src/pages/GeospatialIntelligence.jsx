@@ -141,9 +141,21 @@ function riskColor(score) {
    ═══════════════════════════════════════════════════════════════ */
 
 function createCityMarkerIcon(city, isSelected) {
-  const iconEmoji = city.name === 'Mumbai' ? '🌆' : city.name === 'Nagpur' ? '🏙️' : '🏞️'
-  const regionLabel = city.name === 'Nagpur' ? 'Vidarbha' : (city.name === 'Nashik' || city.name === 'Nasik') ? 'Ghats' : 'Konkan'
-  const haloColor = isSelected ? '#2563EB' : city.color
+  const iconEmoji =
+    city.zone === 'North'
+      ? '🏔️'
+      : city.zone === 'South'
+      ? '🌴'
+      : city.zone === 'East'
+      ? '🌊'
+      : city.zone === 'Northeast'
+      ? '🌿'
+      : city.zone === 'Central'
+      ? '🏛️'
+      : '🌆'
+  const stateLabel = city.state || 'India'
+  const regionLabel = city.region || city.district || `${city.zone || 'Metropolitan'} Zone`
+  const haloColor = isSelected ? '#2563EB' : city.color || '#0284C7'
   const activeBorder = isSelected ? '2px solid #2563EB' : '1px solid #CBD5E1'
   const scale = isSelected ? 'scale(1.08)' : 'scale(1)'
 
@@ -172,7 +184,7 @@ function createCityMarkerIcon(city, isSelected) {
           height:28px;
           border-radius:50%;
           background:#FFFFFF;
-          border:2.5px solid ${city.color};
+          border:2.5px solid ${city.color || '#2563EB'};
           box-shadow:0 3px 10px rgba(15,23,42,0.25);
           font-size:14px;
           z-index:2;
@@ -200,15 +212,15 @@ function createCityMarkerIcon(city, isSelected) {
           z-index:2;
         ">
           <div style="display:flex;align-items:center;gap:3.5px;">
-            <span style="width:5px;height:5px;border-radius:50%;background:${city.color};"></span>
+            <span style="width:5px;height:5px;border-radius:50%;background:${city.color || '#2563EB'};"></span>
             <span style="font-weight:800;color:#0F172A;">${city.name}</span>
           </div>
-          <span style="font-size:8.5px;color:#64748B;font-weight:600;">Maharashtra · ${regionLabel}</span>
+          <span style="font-size:8.5px;color:#64748B;font-weight:600;">${stateLabel} · ${regionLabel}</span>
         </div>
       </div>
     `,
-    iconSize: [90, 60],
-    iconAnchor: [45, 14],
+    iconSize: [94, 60],
+    iconAnchor: [47, 14],
   })
 }
 
@@ -398,7 +410,9 @@ function EventMarkers({ events, layer, onSelectEvent }) {
               <span>{CAT_ICONS[event.event_category] || '🌧️'}</span>
               <span>{CAT[event.event_category] || event.event_category}</span>
             </div>
-            <div className="text-slate-600 font-medium">{event.city || 'Regional Hub'} · {event.severity}</div>
+            <div className="text-slate-600 font-medium">
+              {event.city || event.district || 'National Grid'} · {event.state || 'India'}
+            </div>
             <div className="text-[10px] text-slate-400">{ago(event.last_seen)}</div>
           </div>
         </Tooltip>
@@ -409,8 +423,8 @@ function EventMarkers({ events, layer, onSelectEvent }) {
 
 /* ═══════════════════════════════════════════════════════════════
    Section 14: Split Layout Information Panel
-   - Selected City Dossier (Mumbai, Nagpur, Nashik)
-   - Selected Event Dossier
+   - Selected City Details (Pan-India Cities)
+   - Selected Event Record
    - National Scope Overview (All India)
    ═══════════════════════════════════════════════════════════════ */
 
@@ -474,7 +488,7 @@ function InformationPanel({
                 {CAT[selectedEvent.event_category] || selectedEvent.event_category}
               </div>
               <div className="text-xs text-slate-500 font-medium">
-                {selectedEvent.city || 'Regional Hub'} · {selectedEvent.state || 'Maharashtra'}
+                {selectedEvent.city || selectedEvent.district || 'National Meteorological Grid'} · {selectedEvent.state || 'India'}
               </div>
             </div>
           </div>
@@ -519,7 +533,7 @@ function InformationPanel({
             onClick={() => navigate(`/events/${selectedEvent.event_id}`)}
             className="w-full btn-primary text-xs py-2 shadow-xs"
           >
-            Open Full Event Dossier →
+            Open Full Event Details →
           </button>
         </div>
       )}
@@ -527,7 +541,7 @@ function InformationPanel({
       {/* ── CASE 2: Specific City is Selected (Mumbai, Nagpur, Nashik) ── */}
       {selectedCity && cityMeta && (
         <div className="space-y-3.5">
-          {/* City Dossier Header Card */}
+          {/* City Details Header Card */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
             {/* City Photo with Gradient Overlay & Status Badge */}
             <div className="relative h-36 w-full bg-slate-100 overflow-hidden">
@@ -826,7 +840,7 @@ export default function GeospatialIntelligence() {
   // One-Click Geospatial Operational Brief Exporter
   const exportGeospatialBrief = () => {
     const brief = {
-      title: 'National Meteorological Geospatial Briefing Dossier',
+      title: 'National Meteorological Geospatial Briefing Report',
       timestamp: new Date().toISOString(),
       active_hubs: ACTIVE_CITIES.map((c) => ({
         city: c.name,
@@ -1114,16 +1128,13 @@ export default function GeospatialIntelligence() {
               zoomControl={true}
               attributionControl={false}
             >
+              {/* MapTiler Streets Base Tiles */}
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+                url={`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_API_KEY}`}
                 maxZoom={19}
-                subdomains="abcd"
-              />
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
-                maxZoom={19}
-                subdomains="abcd"
-                opacity={0.7}
+                tileSize={512}
+                zoomOffset={-1}
+                attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
               />
 
               {/* Surrounding countries landmass layer */}

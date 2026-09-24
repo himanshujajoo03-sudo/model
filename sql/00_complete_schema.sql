@@ -173,7 +173,9 @@ CREATE TABLE IF NOT EXISTS canonical_events (
                              CHECK (credibility_score BETWEEN 0 AND 1),
     credibility_reasons  TEXT[] NOT NULL DEFAULT '{}',
     verification_reasons TEXT[] NOT NULL DEFAULT '{}',
-    cluster_id           UUID REFERENCES event_clusters(cluster_id) ON DELETE SET NULL,
+    cluster_id           UUID,
+    CONSTRAINT fk_canonical_events_cluster
+        FOREIGN KEY (cluster_id) REFERENCES event_clusters(cluster_id) ON DELETE SET NULL,
     verification_status  TEXT NOT NULL DEFAULT 'pending'
                              CHECK (verification_status IN (
                                  'pending','verified','needs_review',
@@ -187,8 +189,47 @@ CREATE TABLE IF NOT EXISTS canonical_events (
 
 -- Add FK constraint for events.canonical_event_id
 ALTER TABLE events
-    ADD CONSTRAINT fk_events_canonical_event_id
-    FOREIGN KEY (canonical_event_id) REFERENCES canonical_events(canonical_event_id) ON DELETE SET NULL;
+    ADD COLUMN IF NOT EXISTS canonical_event_id UUID;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_events_canonical_event_id'
+    ) THEN
+        ALTER TABLE events
+            ADD CONSTRAINT fk_events_canonical_event_id
+            FOREIGN KEY (canonical_event_id) REFERENCES canonical_events(canonical_event_id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+-- Add priority and latency timestamp columns
+ALTER TABLE canonical_events
+    ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'normal',
+    ADD COLUMN IF NOT EXISTS spark_processed_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS db_written_at TIMESTAMPTZ;
+
+ALTER TABLE events
+    ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'normal';
+
+-- Add pgvector embedding column if supported, or fallback
+DO $$
+BEGIN
+    BEGIN
+        CREATE EXTENSION IF NOT EXISTS vector;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Extension "vector" is unavailable in this PostgreSQL installation: %', SQLERRM;
+    END;
+
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+        EXECUTE 'ALTER TABLE canonical_events ADD COLUMN IF NOT EXISTS embedding VECTOR(384);';
+        EXECUTE 'CREATE INDEX IF NOT EXISTS idx_canonical_events_embedding ON canonical_events USING hnsw (embedding vector_cosine_ops);';
+    ELSE
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vector') THEN
+            CREATE DOMAIN vector AS text;
+        END IF;
+        ALTER TABLE canonical_events ADD COLUMN IF NOT EXISTS embedding vector;
+    END IF;
+END $$;
 
 -- ============================================================================
 -- PHASE 5: Update verification_log Action Constraint
@@ -244,6 +285,7 @@ CREATE INDEX IF NOT EXISTS idx_events_source_name ON events (source_name);
 CREATE INDEX IF NOT EXISTS idx_events_source_id ON events (source_id);
 CREATE INDEX IF NOT EXISTS idx_events_source_type ON events (source_type);
 CREATE INDEX IF NOT EXISTS idx_events_canonical_event_id ON events (canonical_event_id);
+CREATE INDEX IF NOT EXISTS idx_events_priority ON events (priority);
 
 -- Canonical events indexes
 CREATE INDEX IF NOT EXISTS idx_ce_timestamp ON canonical_events (last_seen DESC);
@@ -254,6 +296,10 @@ CREATE INDEX IF NOT EXISTS idx_ce_verification ON canonical_events (verification
 CREATE INDEX IF NOT EXISTS idx_ce_city ON canonical_events (city);
 CREATE INDEX IF NOT EXISTS idx_ce_geom ON canonical_events USING GIST (geom);
 CREATE INDEX IF NOT EXISTS idx_ce_verification_reasons ON canonical_events USING GIN (verification_reasons);
+CREATE INDEX IF NOT EXISTS idx_canonical_events_cluster_id ON canonical_events (cluster_id);
+CREATE INDEX IF NOT EXISTS idx_canonical_events_priority ON canonical_events (priority);
+CREATE INDEX IF NOT EXISTS idx_canonical_events_spark_processed_at ON canonical_events (spark_processed_at);
+CREATE INDEX IF NOT EXISTS idx_canonical_events_db_written_at ON canonical_events (db_written_at);
 
 -- Event clusters indexes
 CREATE INDEX IF NOT EXISTS idx_clusters_centroid ON event_clusters USING GIST (centroid_geom);
@@ -353,5 +399,3 @@ BEGIN
     
     RAISE NOTICE 'Schema initialization complete. % required tables created.', table_count;
 END $$;
-
-COMMIT;

@@ -85,9 +85,9 @@ export default function SystemMonitoring() {
   const uptime = systemStatus?.uptime_seconds
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex min-h-screen bg-white">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
         <Header health={health} />
 
         {/* Page header */}
@@ -124,7 +124,7 @@ export default function SystemMonitoring() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 p-6">
           {loading && !systemStatus ? (
             <div className="flex items-center justify-center h-40">
               <div className="text-xs text-slate-400 font-medium">Loading system status...</div>

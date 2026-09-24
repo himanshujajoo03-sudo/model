@@ -1,6 +1,19 @@
 import { create } from 'zustand'
 import { apiGet } from '../api/client'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+
+export function computeEventLatency(event) {
+  if (!event || !event.db_written_at) return null
+  const eventTimeStr = event.event_timestamp || event.timestamp || event.event_time || event.created_at
+  if (!eventTimeStr) return null
+  const dbTime = new Date(event.db_written_at).getTime()
+  const eventTime = new Date(eventTimeStr).getTime()
+  if (isNaN(dbTime) || isNaN(eventTime)) return null
+  const diff = dbTime - eventTime
+  return diff >= 0 ? diff : null
+}
+
 const useLiveEventsStore = create((set, get) => ({
   // Data
   events: [],
@@ -32,6 +45,9 @@ const useLiveEventsStore = create((set, get) => ({
   loading: true,
   error: null,
   lastUpdated: null,
+  isLiveStreaming: false,
+  lastSseReceivedAt: null,
+  eventSource: null,
 
   // Polling
   pollInterval: null,
@@ -71,6 +87,7 @@ const useLiveEventsStore = create((set, get) => ({
         page_size: pageSize,
         sort_by: sortBy,
         sort_order: sortOrder,
+        scope: 'live',
       })
       if (filters.category) params.set('category', filters.category)
       if (filters.severity) params.set('severity', filters.severity)
@@ -80,8 +97,13 @@ const useLiveEventsStore = create((set, get) => ({
       if (filters.min_credibility) params.set('min_credibility', filters.min_credibility)
 
       const data = await apiGet(`/events?${params.toString()}`)
+      const rawItems = data.items || []
+      const items = rawItems.map((item) => ({
+        ...item,
+        latency_ms: computeEventLatency(item),
+      }))
       set({
-        events: data.items || [],
+        events: items,
         total: data.total || 0,
         totalPages: data.total_pages || 0,
         loading: false,
@@ -97,8 +119,62 @@ const useLiveEventsStore = create((set, get) => ({
     }
   },
 
+  connectSse: () => {
+    const { eventSource } = get()
+    if (eventSource) return
+
+    const streamUrl = `${API_BASE}/events/stream?scope=live`
+    try {
+      const es = new EventSource(streamUrl)
+      es.onmessage = (e) => {
+        if (!e.data || e.data.startsWith(':')) return
+        try {
+          const newEvent = JSON.parse(e.data)
+          if (!newEvent || !newEvent.event_id) return
+          const eventWithLatency = {
+            ...newEvent,
+            latency_ms: computeEventLatency(newEvent),
+          }
+          set((state) => {
+            const exists = state.events.some((ev) => ev.event_id === eventWithLatency.event_id)
+            const updatedEvents = exists
+              ? state.events.map((ev) => (ev.event_id === eventWithLatency.event_id ? eventWithLatency : ev))
+              : [eventWithLatency, ...state.events]
+            return {
+              events: updatedEvents,
+              total: exists ? state.total : state.total + 1,
+              lastUpdated: new Date().toISOString(),
+              isLiveStreaming: true,
+              lastSseReceivedAt: Date.now(),
+            }
+          })
+        } catch (err) {
+          console.warn('Failed to parse SSE event:', err)
+        }
+      }
+
+      es.onerror = () => {
+        set({ isLiveStreaming: false })
+      }
+
+      set({ eventSource: es })
+    } catch (err) {
+      console.warn('Could not initialize EventSource:', err)
+      set({ isLiveStreaming: false })
+    }
+  },
+
+  disconnectSse: () => {
+    const { eventSource } = get()
+    if (eventSource) {
+      eventSource.close()
+      set({ eventSource: null, isLiveStreaming: false })
+    }
+  },
+
   startPolling: () => {
-    const { pollInterval, fetchEvents } = get()
+    const { pollInterval, fetchEvents, connectSse } = get()
+    connectSse()
     if (pollInterval) return
 
     fetchEvents()
@@ -109,7 +185,8 @@ const useLiveEventsStore = create((set, get) => ({
   },
 
   stopPolling: () => {
-    const { pollInterval } = get()
+    const { pollInterval, disconnectSse } = get()
+    disconnectSse()
     if (pollInterval) {
       clearInterval(pollInterval)
       set({ pollInterval: null })

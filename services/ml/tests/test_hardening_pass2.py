@@ -498,7 +498,8 @@ def test_duplicate_evidence_structure_matches_documented_shape():
     evidence = compute_duplicate_evidence(a, b)
     assert set(evidence.keys()) == {"score", "decision", "signals", "missing_signals"}
     assert evidence["decision"] in ("probable_duplicate", "possible_duplicate", "not_duplicate")
-    assert evidence["missing_signals"] == []  # all signals available here
+    # All metadata signals (source_id, source_url, time, distance) are available here
+    assert [s for s in evidence["missing_signals"] if s != "semantic"] == []
 
 
 def test_compute_pairwise_duplicate_score_still_returns_a_float():

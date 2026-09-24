@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { UPCOMING_CITIES, ACTIVE_CITIES } from '../../constants/cities'
+import { ACTIVE_CITIES } from '../../constants/cities'
 import useLayoutStore from '../../stores/layoutStore'
+import useCommandCenterStore from '../../stores/commandCenterStore'
 
 export default function ComingSoonModal({
   isOpen: propIsOpen,
@@ -14,6 +15,7 @@ export default function ComingSoonModal({
   const storeClose = useLayoutStore((s) => s.closeUpcomingModal)
   const storeMinimize = useLayoutStore((s) => s.minimizeUpcomingModal)
   const storeRestore = useLayoutStore((s) => s.restoreUpcomingModal)
+  const setFilters = useCommandCenterStore((s) => s.setFilters)
 
   const isOpen = propIsOpen !== undefined ? propIsOpen : storeIsOpen
   const isMinimized = propIsMinimized !== undefined ? propIsMinimized : storeIsMinimized
@@ -24,15 +26,16 @@ export default function ComingSoonModal({
   const bodyRef = useRef(null)
   const savedScrollTop = useRef(0)
   const [citySearch, setCitySearch] = useState('')
-  const [selectedCityName, setSelectedCityName] = useState(null)
+  const [selectedCity, setSelectedCity] = useState(null)
+  const [selectedZone, setSelectedZone] = useState('All')
   const [isAnimatingOut, setIsAnimatingOut] = useState(false)
 
-  // Track user scroll position within the modal
+  const ZONES = ['All', 'West', 'North', 'South', 'East', 'Central', 'Northeast']
+
   const handleScroll = (e) => {
     savedScrollTop.current = e.currentTarget.scrollTop
   }
 
-  // Restore scroll position whenever the modal transitions back from minimized to open
   useEffect(() => {
     if (isOpen && !isMinimized && bodyRef.current) {
       const raf = requestAnimationFrame(() => {
@@ -44,7 +47,17 @@ export default function ComingSoonModal({
     }
   }, [isOpen, isMinimized])
 
-  // Handle minimize with smooth 200ms transition
+  // Lock body overflow while open and not minimized, restore on close/minimize/unmount
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      const prevOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = prevOverflow || ''
+      }
+    }
+  }, [isOpen, isMinimized])
+
   const handleMinimize = (e) => {
     e?.stopPropagation?.()
     if (bodyRef.current) {
@@ -57,34 +70,39 @@ export default function ComingSoonModal({
     }, 200)
   }
 
-  // Handle restore back to full modal
   const handleRestore = (e) => {
     e?.stopPropagation?.()
     onRestore()
   }
 
-  // Handle permanent close
   const handleClose = (e) => {
     e?.stopPropagation?.()
     onClose()
   }
 
-  // Filter upcoming cities
-  const filteredUpcomingCities = useMemo(() => {
-    if (!citySearch.trim()) return UPCOMING_CITIES
-    const q = citySearch.toLowerCase()
-    return UPCOMING_CITIES.filter(
-      (c) =>
+  const handleSelectCity = (city) => {
+    setSelectedCity(city)
+    setFilters({ city: city.name })
+    handleClose()
+  }
+
+  const filteredCities = useMemo(() => {
+    return ACTIVE_CITIES.filter((c) => {
+      const matchesZone = selectedZone === 'All' || c.zone === selectedZone
+      const q = citySearch.toLowerCase().trim()
+      const matchesSearch =
+        !q ||
         c.name.toLowerCase().includes(q) ||
-        c.state.toLowerCase().includes(q)
-    )
-  }, [citySearch])
+        c.state.toLowerCase().includes(q) ||
+        (c.zone && c.zone.toLowerCase().includes(q)) ||
+        (c.region && c.region.toLowerCase().includes(q))
+      return matchesZone && matchesSearch
+    })
+  }, [citySearch, selectedZone])
 
   if (!isOpen) return null
 
-  // ═══════════════════════════════════════════════════════════════
-  // Minimized State: Floating card at bottom-right corner
-  // ═══════════════════════════════════════════════════════════════
+  // Minimized State
   if (isMinimized) {
     return (
       <div
@@ -92,35 +110,26 @@ export default function ComingSoonModal({
         onClick={handleRestore}
         role="button"
         tabIndex={0}
-        title="Click to restore Geographic Coverage Scope"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            handleRestore(e)
-          }
-        }}
+        title="Click to restore Pan-India City Weather Explorer"
       >
-        {/* Left: Icon & Information */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-brand-blue-50 border border-brand-blue-200/70 flex items-center justify-center text-sm flex-shrink-0 relative">
-            <span>📍</span>
+            <span>🗺️</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 ring-2 ring-white animate-pulse" />
           </div>
           <div className="truncate">
             <div className="text-xs font-bold text-slate-900 truncate group-hover:text-brand-blue-600 transition-colors">
-              Geographic Coverage Scope
+              Pan-India City Weather Explorer
             </div>
             <div className="text-[11px] text-slate-500 truncate flex items-center gap-1.5 mt-0.5">
               <span className="font-semibold text-emerald-700 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                3 Active Cities
+                {ACTIVE_CITIES.length} Cities Monitored
               </span>
-              <span className="text-slate-300">·</span>
-              <span className="text-slate-600">15 Cities Scheduled</span>
             </div>
           </div>
         </div>
 
-        {/* Right: Action Buttons */}
         <div
           className="flex items-center gap-1.5 flex-shrink-0"
           onClick={(e) => e.stopPropagation()}
@@ -128,16 +137,13 @@ export default function ComingSoonModal({
           <button
             type="button"
             onClick={handleRestore}
-            title="Restore"
-            className="px-2.5 py-1 bg-brand-blue-50 hover:bg-brand-blue-100 text-brand-blue-700 border border-brand-blue-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
+            className="px-2.5 py-1 bg-brand-blue-50 hover:bg-brand-blue-100 text-brand-blue-700 border border-brand-blue-200 rounded-lg text-xs font-bold transition-all"
           >
-            <span>Restore</span>
-            <span className="text-xs font-black">↑</span>
+            Restore ↑
           </button>
           <button
             type="button"
             onClick={handleClose}
-            title="Close"
             className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center text-sm font-semibold transition-colors"
           >
             ✕
@@ -147,220 +153,165 @@ export default function ComingSoonModal({
     )
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // Open State: Polished centered modal with dimmed page backdrop
-  // ═══════════════════════════════════════════════════════════════
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200 ${
-        isAnimatingOut ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in-0'
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs transition-opacity duration-200 ${
+        isAnimatingOut ? 'opacity-0' : 'opacity-100 animate-in fade-in-0'
       }`}
-      onClick={handleMinimize}
+      onClick={handleClose}
     >
       <div
-        className={`relative w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-dropdown overflow-hidden flex flex-col max-h-[85vh] transition-all duration-200 ease-out ${
+        className={`bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden transition-all duration-200 ${
           isAnimatingOut
-            ? 'scale-90 translate-y-12 translate-x-12 opacity-0'
-            : 'scale-100 translate-y-0 translate-x-0 opacity-100 animate-in zoom-in-95 duration-200'
+            ? 'scale-95 opacity-0 translate-y-2'
+            : 'scale-100 opacity-100 animate-in zoom-in-95'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-blue-50 border border-brand-blue-200/70 flex items-center justify-center text-brand-blue-700 font-bold text-sm relative">
-              📍
-              <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 ring-2 ring-white animate-pulse" />
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-brand-blue-50 border border-brand-blue-200 flex items-center justify-center text-base shadow-2xs">
+              <span>🇮🇳</span>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Geographic Coverage Scope
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                National Weather Intelligence Pipeline · Multi-Hub Scope
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                Pan-India Meteorological Coverage ({ACTIVE_CITIES.length} Cities)
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  Live & 30D Past Data
+                </span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Real-time Doppler radar telemetry & 30-day historical archive across all Indian zones
               </p>
             </div>
           </div>
 
-          {/* Header Action Buttons: Minimize (−) and Close (✕) */}
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleMinimize}
+              className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center text-sm font-bold"
               title="Minimize"
-              className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 flex items-center justify-center font-bold text-base transition-colors shadow-2xs"
-              aria-label="Minimize"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
+              −
             </button>
-
             <button
               type="button"
               onClick={handleClose}
+              className="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center text-sm font-bold"
               title="Close"
-              className="w-8 h-8 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 flex items-center justify-center text-sm font-semibold transition-colors shadow-2xs"
-              aria-label="Close"
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Modal Body with preserved scroll position */}
+        {/* Modal Body */}
         <div
           ref={bodyRef}
           onScroll={handleScroll}
-          className="p-5 overflow-y-auto space-y-4 scrollbar-thin flex-1"
+          className="p-6 overflow-y-auto scrollbar-thin flex flex-col gap-4 flex-1"
         >
-          {/* Active Cities Banner */}
-          <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
-                  Currently Live (3 Active Hubs)
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-700 px-2 py-0.5 bg-white border border-emerald-200 rounded-md shadow-2xs">
-                MVP Active
-              </span>
-            </div>
-            <p className="text-xs text-emerald-900 mb-2 leading-relaxed">
-              Full real-time streaming, automated verification, and GIS risk mapping are operational for:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {ACTIVE_CITIES.map((c) => (
-                <div
-                  key={c.name}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-slate-800 shadow-xs hover:border-emerald-400 transition-colors"
-                >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  <span>{c.name}</span>
-                  <span className="text-[10px] text-slate-400 font-normal">
-                    ({c.region})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Upcoming Cities Section */}
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 mb-2">
-              <span className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                <span>Phase II Rollout Cities</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                  Updated Soon
-                </span>
-              </span>
-              <span className="text-[11px] text-slate-400">
-                15 Cities Scheduled
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-              Integration of additional radar networks, local automated weather stations, and municipal citizen feeds is underway for the following tier-1 urban corridors:
-            </p>
-
-            {/* Quick Search Filter inside modal */}
-            <div className="mb-3 relative">
+          {/* Search Bar & Zone Filter */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
               <input
                 type="text"
                 value={citySearch}
                 onChange={(e) => setCitySearch(e.target.value)}
-                placeholder="Search upcoming cities (e.g. Pune, Delhi, Bengaluru)..."
-                className="w-full h-8 pl-8 pr-7 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-blue-500 focus:bg-white transition-all"
+                placeholder="Search any Indian city, state, or region..."
+                className="w-full h-9 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-blue-500 focus:bg-white transition-all shadow-2xs"
               />
-              <span className="absolute left-2.5 top-2 text-xs text-slate-400">🔍</span>
+              <span className="absolute left-3 top-2.5 text-xs text-slate-400">🔍</span>
               {citySearch && (
                 <button
                   type="button"
                   onClick={() => setCitySearch('')}
-                  className="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600"
                 >
                   ✕
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {filteredUpcomingCities.map((city) => {
-                const isSelected = selectedCityName === city.name
-                return (
-                  <div
-                    key={city.name}
-                    onClick={() => setSelectedCityName(isSelected ? null : city.name)}
-                    className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300'
-                        : 'bg-slate-50 border-slate-200/80 hover:bg-slate-100/80'
-                    }`}
-                  >
-                    <div className="truncate min-w-0 pr-1">
-                      <div className="text-xs font-semibold text-slate-800 truncate">
-                        {city.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {city.state}
-                      </div>
-                    </div>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"
-                      title="Phase II: Updated Soon"
-                    />
-                  </div>
-                )
-              })}
-            </div>
-
-            {selectedCityName && (
-              <div className="mt-3 p-2.5 bg-amber-50/60 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between animate-in fade-in-0 duration-150">
-                <div>
-                  <span className="font-bold">{selectedCityName}</span> is slated for automated radar telemetry in Phase II.
-                </div>
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+              {ZONES.map((zone) => (
                 <button
+                  key={zone}
                   type="button"
-                  onClick={() => setSelectedCityName(null)}
-                  className="text-[10px] font-bold text-amber-700 hover:text-amber-900 ml-2"
+                  onClick={() => setSelectedZone(zone)}
+                  className={`text-[10.5px] font-bold px-2.5 py-1.5 rounded-lg transition-all ${
+                    selectedZone === zone
+                      ? 'bg-brand-blue-600 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
                 >
-                  Dismiss
+                  {zone}
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+
+          {/* City Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {filteredCities.map((city) => (
+              <div
+                key={city.name}
+                onClick={() => handleSelectCity(city)}
+                className="p-3 rounded-2xl border border-slate-200 hover:border-brand-blue-400 bg-white hover:bg-brand-blue-50/30 transition-all cursor-pointer shadow-xs group"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full ring-2 ring-slate-100"
+                      style={{ backgroundColor: city.color }}
+                    />
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-brand-blue-700">
+                      {city.name}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Live Active
+                  </span>
+                </div>
+
+                <div className="text-[10.5px] text-slate-500 mb-1.5">
+                  {city.state} · {city.zone} India
+                </div>
+
+                <div className="text-[10px] text-slate-400 line-clamp-1 mb-2">
+                  {city.description}
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-bold text-brand-blue-600 pt-1.5 border-t border-slate-100">
+                  <span>{city.sensors.split('·')[0]}</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform">Filter →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredCities.length === 0 && (
+            <div className="text-center py-8 text-slate-400 text-xs">
+              No cities match your search filter.
+            </div>
+          )}
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between flex-shrink-0">
+          <span className="text-xs text-slate-500 font-medium">
+            Showing {filteredCities.length} of {ACTIVE_CITIES.length} Indian weather corridors
+          </span>
+
           <button
             type="button"
-            onClick={handleMinimize}
-            className="text-xs text-slate-500 hover:text-brand-blue-600 font-semibold flex items-center gap-1.5 transition-colors"
+            onClick={handleClose}
+            className="btn-primary text-xs py-1.5 px-4"
           >
-            <span>Minimize to corner</span>
-            <span className="text-[11px] font-black text-slate-400 group-hover:text-brand-blue-600">↘</span>
+            Close Explorer
           </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleMinimize}
-              className="btn-secondary text-xs py-1.5 px-3"
-            >
-              Minimize
-            </button>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="btn-primary text-xs py-1.5 px-4"
-            >
-              Got it
-            </button>
-          </div>
         </div>
       </div>
     </div>

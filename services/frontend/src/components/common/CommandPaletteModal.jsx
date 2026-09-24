@@ -13,7 +13,8 @@ const NAVIGATION_ITEMS = [
   { id: 'nav-emerging', title: 'Emerging Events', subtitle: 'Pre-incident anomaly detection & spatial clustering', path: '/emerging', category: 'Navigation', icon: '⚡' },
   { id: 'nav-verify', title: 'Verification Center', subtitle: 'Doppler radar cross-check & officer sign-off', path: '/verification', category: 'Navigation', icon: '🛡️' },
   { id: 'nav-trends', title: 'Event Trends & Analytics', subtitle: 'Statistical temporal patterns & hazard frequency', path: '/analytics/events', category: 'Navigation', icon: '📈' },
-  { id: 'nav-review', title: 'Report Review', subtitle: 'Automated briefing dossiers & incident summaries', path: '/report-review', category: 'Navigation', icon: '📑' },
+  { id: 'nav-citizen', title: 'Citizen Report', subtitle: 'Public crowd-sourced observation desk & reporting form', path: '/citizen-report', category: 'Navigation', icon: '📢' },
+  { id: 'nav-review', title: 'Report Review', subtitle: 'Automated briefing reports & incident summaries', path: '/report-review', category: 'Navigation', icon: '📑' },
   { id: 'nav-sys', title: 'System Monitoring', subtitle: 'Pipeline health, ingestion throughput & API status', path: '/system-monitoring', category: 'Navigation', icon: '⚙️' },
 ]
 
@@ -47,6 +48,17 @@ export default function CommandPaletteModal() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [commandPaletteOpen, setCommandPaletteOpen])
+
+  // Lock body overflow while open, restore on close/unmount
+  useEffect(() => {
+    if (commandPaletteOpen) {
+      const prevOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = prevOverflow || ''
+      }
+    }
+  }, [commandPaletteOpen])
 
   // Focus input when opened
   useEffect(() => {

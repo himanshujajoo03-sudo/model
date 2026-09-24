@@ -1,51 +1,45 @@
 {
-  "Mumbai": {
-    "min_lat": 18.85,
-    "max_lat": 19.35,
-    "min_lon": 72.75,
-    "max_lon": 73.05
-  },
-  "Nagpur": {
-    "min_lat": 21.00,
-    "max_lat": 21.30,
-    "min_lon": 78.95,
-    "max_lon": 79.25
-  },
-  "Nashik": {
-    "min_lat": 19.85,
-    "max_lat": 20.15,
-    "min_lon": 73.65,
-    "max_lon": 73.95
-  },
-  "Pune": {
-    "min_lat": 18.35,
-    "max_lat": 18.70,
-    "min_lon": 73.70,
-    "max_lon": 74.05
-  },
-  "Aurangabad": {
-    "min_lat": 19.75,
-    "max_lat": 20.00,
-    "min_lon": 75.20,
-    "max_lon": 75.45
-  },
-  "Kolhapur": {
-    "min_lat": 16.60,
-    "max_lat": 16.80,
-    "min_lon": 74.15,
-    "max_lon": 74.35
-  },
-  "Satara": {
-    "min_lat": 17.60,
-    "max_lat": 17.80,
-    "min_lon": 73.90,
-    "max_lon": 74.10
-  },
-  "Thane": {
-    "min_lat": 19.10,
-    "max_lat": 19.35,
-    "min_lon": 72.90,
-    "max_lon": 73.10
-  }
+  "Mumbai": { "min_lat": 18.85, "max_lat": 19.35, "min_lon": 72.75, "max_lon": 73.05 },
+  "Nagpur": { "min_lat": 21.00, "max_lat": 21.30, "min_lon": 78.95, "max_lon": 79.25 },
+  "Nashik": { "min_lat": 19.85, "max_lat": 20.15, "min_lon": 73.65, "max_lon": 73.95 },
+  "Pune": { "min_lat": 18.35, "max_lat": 18.70, "min_lon": 73.70, "max_lon": 74.05 },
+  "Delhi": { "min_lat": 28.40, "max_lat": 28.90, "min_lon": 76.85, "max_lon": 77.40 },
+  "Agra": { "min_lat": 27.05, "max_lat": 27.30, "min_lon": 77.90, "max_lon": 78.15 },
+  "Bengaluru": { "min_lat": 12.80, "max_lat": 13.15, "min_lon": 77.45, "max_lon": 77.75 },
+  "Chennai": { "min_lat": 12.90, "max_lat": 13.25, "min_lon": 80.10, "max_lon": 80.35 },
+  "Kolkata": { "min_lat": 22.40, "max_lat": 22.75, "min_lon": 88.20, "max_lon": 88.50 },
+  "Hyderabad": { "min_lat": 17.20, "max_lat": 17.60, "min_lon": 78.30, "max_lon": 78.65 },
+  "Ahmedabad": { "min_lat": 22.90, "max_lat": 23.15, "min_lon": 72.45, "max_lon": 72.70 },
+  "Surat": { "min_lat": 21.05, "max_lat": 21.30, "min_lon": 72.70, "max_lon": 72.95 },
+  "Jaipur": { "min_lat": 26.75, "max_lat": 27.05, "min_lon": 75.65, "max_lon": 75.95 },
+  "Lucknow": { "min_lat": 26.70, "max_lat": 27.00, "min_lon": 80.80, "max_lon": 81.10 },
+  "Varanasi": { "min_lat": 25.20, "max_lat": 25.45, "min_lon": 82.85, "max_lon": 83.10 },
+  "Kanpur": { "min_lat": 26.35, "max_lat": 26.60, "min_lon": 80.20, "max_lon": 80.45 },
+  "Chandigarh": { "min_lat": 30.60, "max_lat": 30.85, "min_lon": 76.65, "max_lon": 76.90 },
+  "Amritsar": { "min_lat": 31.50, "max_lat": 31.75, "min_lon": 74.75, "max_lon": 75.00 },
+  "Shimla": { "min_lat": 31.00, "max_lat": 31.20, "min_lon": 77.05, "max_lon": 77.30 },
+  "Dehradun": { "min_lat": 30.20, "max_lat": 30.45, "min_lon": 77.90, "max_lon": 78.15 },
+  "Srinagar": { "min_lat": 33.95, "max_lat": 34.20, "min_lon": 74.65, "max_lon": 74.95 },
+  "Bhopal": { "min_lat": 23.10, "max_lat": 23.40, "min_lon": 77.25, "max_lon": 77.55 },
+  "Indore": { "min_lat": 22.60, "max_lat": 22.85, "min_lon": 75.70, "max_lon": 76.00 },
+  "Patna": { "min_lat": 25.45, "max_lat": 25.70, "min_lon": 85.00, "max_lon": 85.25 },
+  "Ranchi": { "min_lat": 23.20, "max_lat": 23.45, "min_lon": 85.20, "max_lon": 85.45 },
+  "Bhubaneswar": { "min_lat": 20.15, "max_lat": 20.40, "min_lon": 85.70, "max_lon": 85.95 },
+  "Puri": { "min_lat": 19.70, "max_lat": 19.90, "min_lon": 85.70, "max_lon": 85.95 },
+  "Raipur": { "min_lat": 21.10, "max_lat": 21.35, "min_lon": 81.50, "max_lon": 81.75 },
+  "Kochi": { "min_lat": 9.80, "max_lat": 10.10, "min_lon": 76.15, "max_lon": 76.40 },
+  "Thiruvananthapuram": { "min_lat": 8.40, "max_lat": 8.65, "min_lon": 76.80, "max_lon": 77.05 },
+  "Visakhapatnam": { "min_lat": 17.55, "max_lat": 17.80, "min_lon": 83.10, "max_lon": 83.35 },
+  "Vijayawada": { "min_lat": 16.40, "max_lat": 16.65, "min_lon": 80.50, "max_lon": 80.75 },
+  "Coimbatore": { "min_lat": 10.90, "max_lat": 11.15, "min_lon": 76.85, "max_lon": 77.10 },
+  "Madurai": { "min_lat": 9.80, "max_lat": 10.05, "min_lon": 78.00, "max_lon": 78.25 },
+  "Guwahati": { "min_lat": 26.00, "max_lat": 26.25, "min_lon": 91.60, "max_lon": 91.85 },
+  "Shillong": { "min_lat": 25.45, "max_lat": 25.70, "min_lon": 91.75, "max_lon": 92.00 },
+  "Agartala": { "min_lat": 23.70, "max_lat": 23.95, "min_lon": 91.15, "max_lon": 91.40 },
+  "Imphal": { "min_lat": 24.70, "max_lat": 24.95, "min_lon": 93.80, "max_lon": 94.05 },
+  "Panaji": { "min_lat": 15.35, "max_lat": 15.60, "min_lon": 73.70, "max_lon": 73.95 },
+  "Aurangabad": { "min_lat": 19.75, "max_lat": 20.00, "min_lon": 75.20, "max_lon": 75.45 },
+  "Kolhapur": { "min_lat": 16.60, "max_lat": 16.80, "min_lon": 74.15, "max_lon": 74.35 },
+  "Satara": { "min_lat": 17.60, "max_lat": 17.80, "min_lon": 73.90, "max_lon": 74.10 },
+  "Thane": { "min_lat": 19.10, "max_lat": 19.35, "min_lon": 72.90, "max_lon": 73.10 }
 }
-

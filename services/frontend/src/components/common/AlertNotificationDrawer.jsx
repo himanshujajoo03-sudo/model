@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useLayoutStore from '../../stores/layoutStore'
 import { CityCrest } from './BrandLogos'
@@ -50,7 +50,7 @@ const INITIAL_ALERTS = [
     severity: 'info',
     title: 'INSAT-3D Rapid-Scan Radiometer Resync Complete',
     location: 'Mumbai',
-    description: 'Cloud top brightness temperature layer synchronized with IMD national telemetry pipeline.',
+    description: 'Cloud top brightness temperature layer synchronized with Open-Meteo national telemetry pipeline.',
     time: '34m ago',
     type: 'operational',
     category: 'cyclone',
@@ -63,6 +63,17 @@ export default function AlertNotificationDrawer() {
   const { alertDrawerOpen, setAlertDrawerOpen, audioMuted, toggleAudioMuted } = useLayoutStore()
   const [alerts, setAlerts] = useState(INITIAL_ALERTS)
   const [activeTab, setActiveTab] = useState('all') // 'all', 'critical', 'radar', 'operational'
+
+  // Lock body overflow while drawer is open, restore on close/unmount
+  useEffect(() => {
+    if (alertDrawerOpen) {
+      const prevOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = prevOverflow || ''
+      }
+    }
+  }, [alertDrawerOpen])
 
   if (!alertDrawerOpen) return null
 
@@ -269,7 +280,7 @@ export default function AlertNotificationDrawer() {
                       }}
                       className="font-bold text-slate-600 hover:text-slate-900 hover:underline"
                     >
-                      Dossier
+                      Event Details
                     </button>
                   </div>
                 </div>

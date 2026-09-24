@@ -22,6 +22,13 @@ logger = logging.getLogger("ingestion")
 
 KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 RAW_TOPIC = "weather.raw"
+CRITICAL_TOPIC = os.environ.get("CRITICAL_TOPIC", "weather.critical")
+
+try:
+    from priority_triage import is_critical
+except ImportError:
+    from services.ingestion.priority_triage import is_critical
+
 
 
 def _parse_bool(value, default=True):
@@ -51,7 +58,7 @@ SYNTHETIC_EVENTS = [
         "severity": "high",
         "description": (
             "Heavy rainfall caused waterlogging in Sion, Kurla and Andheri. "
-            "IMD has issued a red alert for Mumbai."
+            "NDMA SACHET has issued a red alert for Mumbai."
         ),
     },
     {
@@ -97,12 +104,10 @@ def build_canonical_event(test):
     event_ts = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     ingest_ts = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
-    # Deterministic event_id from stable source fields
-    source_type = "synthetic"
+    # Deterministic event_id from stable source fields:
+    # For synthetic events, use the synthetic event's own fixed identifier as the sole basis
     source_id = test["source_id"]
-    lat = test["latitude"]
-    lon = test["longitude"]
-    hash_input = f"{source_type}|{source_id}|{event_ts}|{lat}|{lon}"
+    hash_input = source_id
     raw = bytearray(hashlib.sha256(hash_input.encode()).digest()[:16])
     raw[6] = (raw[6] & 0x0F) | 0x40
     raw[8] = (raw[8] & 0x3F) | 0x80
@@ -190,22 +195,36 @@ def produce_event(producer, topic, event):
 def _run_optional_adapters(producer):
     """Poll configured RSS, websites, social and government sources once."""
     from adapters.rss import RssAdapter
+    from adapters.sachet import SachetAdapter
     from adapters.website import WebsiteAdapter
     from adapters.social import SocialAdapter
     from adapters.government import GovernmentAdapter
 
     adapters = [
         (RssAdapter(), "rss"),
+        (SachetAdapter(), "sachet"),
         (WebsiteAdapter(), "website"),
-        (SocialAdapter(), "simulated_social"),
+        (SocialAdapter(), "social"),
         (GovernmentAdapter(), "government_dataset"),
     ]
     for adapter, topic in adapters:
         try:
             events = adapter.fetch_events()
-            topic_map = {"rss": "weather.raw", "website": "weather.raw", "simulated_social": "social.raw", "government_dataset": "government.raw"}
+            topic_map = {
+                "rss": "weather.raw",
+                "sachet": "weather.raw",
+                "website": "weather.raw",
+                "social": "social.raw",
+                "simulated_social": "social.raw",
+                "government_dataset": "government.raw",
+            }
             for event in events:
-                produce_event(producer, topic_map[topic], event)
+                evt_src = event.get("source_type") or topic
+                dest_topic = topic_map.get(evt_src, topic_map.get(topic, "weather.raw"))
+                produce_event(producer, dest_topic, event)
+                if is_critical(event):
+                    produce_event(producer, CRITICAL_TOPIC, event)
+
             if events:
                 logger.info("%s adapter published %d events", adapter.source_name, len(events))
         except Exception as exc:
@@ -221,10 +240,16 @@ def main():
         for test_event in SYNTHETIC_EVENTS:
             canonical = build_canonical_event(test_event)
             produce_event(producer, RAW_TOPIC, canonical)
+            if is_critical(canonical):
+                produce_event(producer, CRITICAL_TOPIC, canonical)
             time.sleep(0.5)
 
     from adapters.weather_api import OpenMeteoAdapter
-    weather = OpenMeteoAdapter(produce_fn=lambda e: produce_event(producer, RAW_TOPIC, e))
+    def _produce_weather(e):
+        produce_event(producer, RAW_TOPIC, e)
+        if is_critical(e):
+            produce_event(producer, CRITICAL_TOPIC, e)
+    weather = OpenMeteoAdapter(produce_fn=_produce_weather)
     while True:
         try:
             weather.run_once()

@@ -30,6 +30,15 @@ for topic in "${TOPICS[@]}"; do
     --replication-factor 1
 done
 
+echo "  Creating topic: weather.critical"
+docker compose exec kafka kafka-topics \
+  --bootstrap-server localhost:9092 \
+  --create \
+  --if-not-exists \
+  --topic "weather.critical" \
+  --partitions 2 \
+  --replication-factor 1
+
 echo ""
 echo "Verifying topics..."
 docker compose exec kafka kafka-topics \
@@ -37,4 +46,4 @@ docker compose exec kafka kafka-topics \
   --list
 
 echo ""
-echo "All 7 topics created successfully."
+echo "All 8 topics created successfully."

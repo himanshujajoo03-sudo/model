@@ -77,7 +77,7 @@ export function PlatformLogo({ size = 'md', collapsed = false, className = '' })
 }
 
 /**
- * Official Meteorological Trust Crest (IMD / MoES Alignment)
+ * Official Meteorological Trust Crest (Open-Meteo / NDMA SACHET Alignment)
  */
 export function MeteorologicalTrustBadge({ className = '' }) {
   return (
@@ -86,8 +86,8 @@ export function MeteorologicalTrustBadge({ className = '' }) {
         <path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z" />
       </svg>
       <div className="text-[10px] leading-none">
-        <span className="font-bold text-slate-800">MoES / IMD</span>
-        <span className="text-slate-500 ml-1">Corridor Telemetry</span>
+        <span className="font-bold text-slate-800">NDMA / SACHET</span>
+        <span className="text-slate-500 ml-1">Corridor Alert</span>
       </div>
     </div>
   )
@@ -202,13 +202,13 @@ export function SourceChannelLogo({ source, className = '' }) {
     )
   }
 
-  if (norm.includes('imd') || norm.includes('gov') || norm.includes('official')) {
+  if (norm.includes('sachet') || norm.includes('ndma') || norm.includes('gov') || norm.includes('official')) {
     return (
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-md text-amber-800 ${className}`}>
         <svg className="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
         </svg>
-        <span className="text-[10px] font-extrabold uppercase tracking-wide">IMD OFFICIAL</span>
+        <span className="text-[10px] font-extrabold uppercase tracking-wide">NDMA SACHET</span>
       </div>
     )
   }

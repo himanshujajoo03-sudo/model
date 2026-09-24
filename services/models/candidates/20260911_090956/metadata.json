@@ -1,0 +1,155 @@
+{
+  "model_version": "weather-event-classifier-20260911_090956",
+  "run_id": "20260911_090956",
+  "trained_at": "2026-09-11T09:09:56.665417",
+  "algorithm": "logistic_regression",
+  "probability_calibration": "sigmoid_cv3",
+  "sklearn_version": "1.3.2",
+  "features": "tfidf_10000_bigrams_unicode",
+  "random_state": 42,
+  "validation_accuracy": 0.9875,
+  "test_accuracy": 0.9917,
+  "macro_precision": 0.9669,
+  "macro_recall": 0.9976,
+  "macro_f1": 0.9812,
+  "weighted_f1": 0.9919,
+  "worst_category": "hailstorm",
+  "worst_category_f1": 0.9231,
+  "training_samples": 7709,
+  "validation_samples": 960,
+  "test_samples": 963,
+  "total_samples": 9632,
+  "categories_count": 12,
+  "categories": [
+    "rainfall",
+    "heavy_rainfall",
+    "flood",
+    "thunderstorm",
+    "lightning",
+    "heatwave",
+    "fog",
+    "dust_storm",
+    "strong_wind",
+    "hailstorm",
+    "cyclone",
+    "other"
+  ],
+  "trained_by": "Project-Owned Offline Training",
+  "training_script": "training/train.py",
+  "data_leakage": {
+    "train_val_overlap": 0,
+    "train_test_overlap": 0,
+    "val_test_overlap": 0,
+    "total_leakage_cases": 0
+  },
+  "data_leakage_detailed": {
+    "policy": "strict",
+    "checked": true,
+    "train_val_exact_overlap": 0,
+    "train_test_exact_overlap": 0,
+    "val_test_exact_overlap": 0,
+    "total_exact_leakage_cases": 0,
+    "event_id_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "source_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "near_duplicate_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "near_duplicate_check_methods": {
+      "train_val": "group_membership",
+      "train_test": "group_membership",
+      "val_test": "group_membership"
+    },
+    "near_duplicate_check_complete": true,
+    "near_duplicate_leakage_cases": 0,
+    "blocking_leakage_found": false,
+    "passed": true
+  },
+  "leakage_policy": "strict",
+  "acceptance_passed": true,
+  "deployment_forced": false,
+  "missing_classes": [],
+  "per_category_metrics": {
+    "rainfall": {
+      "precision": 1.0,
+      "recall": 0.9709090909090909,
+      "f1-score": 0.985239852398524,
+      "support": 275.0
+    },
+    "heavy_rainfall": {
+      "precision": 0.9285714285714286,
+      "recall": 1.0,
+      "f1-score": 0.962962962962963,
+      "support": 39.0
+    },
+    "flood": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 16.0
+    },
+    "thunderstorm": {
+      "precision": 0.8666666666666667,
+      "recall": 1.0,
+      "f1-score": 0.9285714285714286,
+      "support": 13.0
+    },
+    "lightning": {
+      "precision": 0.95,
+      "recall": 1.0,
+      "f1-score": 0.9743589743589743,
+      "support": 19.0
+    },
+    "heatwave": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 31.0
+    },
+    "fog": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 18.0
+    },
+    "dust_storm": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 19.0
+    },
+    "strong_wind": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 48.0
+    },
+    "hailstorm": {
+      "precision": 0.8571428571428571,
+      "recall": 1.0,
+      "f1-score": 0.923076923076923,
+      "support": 12.0
+    },
+    "cyclone": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 17.0
+    },
+    "other": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 456.0
+    }
+  }
+}

@@ -33,7 +33,7 @@ try:
     )
     from ..config.config_loader import load_ml_config
     from ..utils.text import normalize_text
-except ImportError:
+except (ImportError, ValueError):
     from classifier.rules import (
         VALID_CATEGORIES,
         canonicalize_category,
@@ -169,27 +169,63 @@ def load_from_csv(csv_path: Path) -> list[dict]:
 
 
 def discover_data_files(custom_path: Path | str | None = None) -> list[Path]:
-    """Discover all CSV and JSON data files in data/ directory."""
+    """Discover all CSV and JSON data files in data/ directory.
+
+    Files are deduplicated by their **resolved absolute path** so that the
+    same physical file placed in multiple scan directories (e.g., a JSON file
+    that was copied from data/incoming/ to data/raw/ for archival purposes) is
+    ingested exactly once.  The first occurrence in discovery-priority order
+    wins:  data/training > data/incoming > data/raw.
+
+    A WARNING is logged for every suppressed duplicate so the operator is
+    aware that a physical copy exists on disk and can remove it.  This avoids
+    silent data duplication that deduplication-on-text would otherwise mask.
+
+    This design is intentionally dataset-size agnostic: it uses resolved path
+    identity (O(n) in the number of files, not records) and is correct whether
+    the data directory contains one file or hundreds of event-category files.
+    """
     if custom_path:
         p = Path(custom_path)
         if p.is_file():
             return [p]
         elif p.is_dir():
-            return list(p.glob("**/*.csv")) + list(p.glob("**/*.json"))
+            raw = list(p.glob("**/*.csv")) + list(p.glob("**/*.json"))
+        else:
+            raw = []
+    else:
+        # Discovery order: data/training > data/incoming > data/raw.
+        raw = []
+        for sub in ["training", "incoming", "raw"]:
+            sub_dir = DATA_DIR / sub
+            if sub_dir.exists():
+                raw.extend(list(sub_dir.glob("*.csv")))
+                raw.extend(list(sub_dir.glob("*.json")))
 
-    # Discovery order: data/training, data/incoming, data/raw
-    files = []
-    for sub in ["training", "incoming", "raw"]:
-        sub_dir = DATA_DIR / sub
-        if sub_dir.exists():
-            files.extend(list(sub_dir.glob("*.csv")))
-            files.extend(list(sub_dir.glob("*.json")))
+        if not raw:
+            raw = list(DATA_DIR.glob("*.csv")) + list(DATA_DIR.glob("*.json"))
 
-    if not files:
-        files = list(DATA_DIR.glob("*.csv")) + list(DATA_DIR.glob("*.json"))
+    # Exclude already-processed output file.
+    output_resolved = OUTPUT_FILE.resolve()
+    raw = [f for f in raw if f.resolve() != output_resolved]
 
-    # Exclude already processed output file
-    return [f for f in files if f.resolve() != OUTPUT_FILE.resolve()]
+    # Deduplicate by resolved absolute path (preserves discovery-order priority).
+    seen_resolved: dict[Path, Path] = {}   # resolved_path -> first canonical Path
+    for f in raw:
+        resolved = f.resolve()
+        if resolved in seen_resolved:
+            first = seen_resolved[resolved]
+            logger.warning(
+                "Duplicate data file suppressed: '%s' resolves to the same physical "
+                "file as '%s' (already scheduled for ingestion). "
+                "Remove the duplicate copy to avoid confusion.",
+                f,
+                first,
+            )
+        else:
+            seen_resolved[resolved] = f
+
+    return list(seen_resolved.values())
 
 
 def prepare_training_data(

@@ -29,17 +29,30 @@ const VER_LABEL = {
   suspicious: 'Suspicious', duplicate: 'Duplicate',
 }
 const SRC_TYPE_LABEL = {
-  weather_api: 'Weather API', government_dataset: 'Government', website: 'Website',
-  rss: 'RSS', citizen: 'Citizen', social: 'Social Media',
-  simulated_social: 'Simulated Social', synthetic: 'Synthetic',
+  weather_api: 'Open-Meteo Synoptic AWS',
+  synoptic_telemetry: 'Open-Meteo Synoptic Telemetry',
+  reanalysis_archive: 'ECMWF ERA5 Reanalysis',
+  government_dataset: 'Data.gov.in Open Data',
+  government_warning: 'NDMA SACHET Alert',
+  open_government_data: 'Data.gov.in Open Data',
+  website: 'NDMA SACHET Feed',
+  rss: 'GDACS Disaster System',
+  global_alert: 'GDACS Global Disaster System',
+  citizen: 'Citizen Report (Mastodon)',
+  citizen_report: 'Citizen Report (Mastodon)',
+  social: 'Citizen Social (Mastodon)',
+  social_media: 'Citizen Social (Mastodon)',
+  simulated_social: 'Citizen Social (Mastodon)',
+  synthetic: 'Open-Meteo Synoptic AWS',
 }
 
 const SOURCE_TYPES = [
   { value: '', label: 'All Sources', icon: '📡' },
-  { value: 'weather_api', label: 'Weather API', icon: '🌐', subtitle: 'Official sensors' },
-  { value: 'synthetic', label: 'Synthetic Doppler', icon: '🛰️', subtitle: 'Radar fusion' },
-  { value: 'citizen', label: 'Citizen Reports', icon: '👥', subtitle: 'Ground truth' },
-  { value: 'social', label: 'Social Feeds', icon: '💬', subtitle: 'Public signals' },
+  { value: 'weather_api', label: 'Open-Meteo Synoptic AWS', icon: '🛰️', subtitle: 'Live surface telemetry' },
+  { value: 'rss', label: 'GDACS Disaster System', icon: '🌐', subtitle: 'Global hazard alerts' },
+  { value: 'government_warning', label: 'NDMA SACHET Early Warning', icon: '🇮🇳', subtitle: 'National disaster alerts' },
+  { value: 'government_dataset', label: 'Data.gov.in Open Data', icon: '🏛️', subtitle: 'Official records' },
+  { value: 'citizen', label: 'Citizen Reports (Mastodon)', icon: '👥', subtitle: 'Decentralized citizen truth' },
 ]
 const CATEGORIES = [
   { value: '', label: 'All Categories', icon: '🌐' },
@@ -311,18 +324,18 @@ export default function ReportReview() {
   }, [stats])
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex min-h-screen bg-white">
       {/* Unified Sidebar */}
       <Sidebar />
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
         <Header />
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 flex">
           {/* Left: Queue */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 min-w-0">
+          <div className="flex-1 px-5 py-4 min-w-0">
             {/* Title */}
             <div className="mb-4">
               <h1 className="text-[16px] font-semibold text-[#18232D] mb-0.5">Report Review</h1>

@@ -67,7 +67,12 @@ class TrainedModelClassifier(BaseClassifier):
         current_dir = Path(__file__).resolve().parent
         root_dir = current_dir.parent
 
+        repo_root = root_dir.parent.parent
         candidates = [
+            # Workspace root repository layout: models/event_classifier/
+            repo_root / "models" / "event_classifier" / "model.pkl",
+            repo_root / "models" / "event_classifier" / "model.joblib",
+            repo_root / "models" / "event_classifier" / "classifier_pipeline.joblib",
             # Production deployment layout: ml/models/event_classifier/
             root_dir / "models" / "event_classifier" / "model.pkl",
             root_dir / "models" / "event_classifier" / "model.joblib",

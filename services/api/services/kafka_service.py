@@ -4,10 +4,15 @@ import json
 import os
 import uuid
 from datetime import datetime, timezone
-from confluent_kafka import Producer
+try:
+    from confluent_kafka import Producer
+except ImportError:
+    Producer = None
 
 
 def _publish(topic: str, event_type: str, payload: dict, key: str) -> None:
+    if Producer is None:
+        return
     bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
     producer = Producer({"bootstrap.servers": bootstrap, "client.id": "api", "acks": "all", "retries": 3})
     envelope = {

@@ -43,34 +43,71 @@ def _load_sources_config():
         return {}
 
 
+def _get_configured_cities():
+    """Load cities list from sources.json, falling back to comprehensive Indian cities."""
+    cfg = _load_sources_config()
+    raw_cities = cfg.get("weather_api", {}).get("cities", [])
+    if raw_cities:
+        result = []
+        for c in raw_cities:
+            result.append({
+                "name": c.get("name"),
+                "district": c.get("district", c.get("name")),
+                "state": c.get("state", "India"),
+                "latitude": c.get("lat", c.get("latitude")),
+                "longitude": c.get("lon", c.get("longitude")),
+            })
+        return result
+    return [
+        {"name": "Mumbai", "district": "Mumbai City", "state": "Maharashtra", "latitude": 19.0760, "longitude": 72.8777},
+        {"name": "Nagpur", "district": "Nagpur", "state": "Maharashtra", "latitude": 21.1458, "longitude": 79.0882},
+        {"name": "Nashik", "district": "Nashik", "state": "Maharashtra", "latitude": 19.9975, "longitude": 73.7898},
+        {"name": "Pune", "district": "Pune", "state": "Maharashtra", "latitude": 18.5204, "longitude": 73.8567},
+        {"name": "Delhi", "district": "New Delhi", "state": "Delhi", "latitude": 28.6139, "longitude": 77.2090},
+        {"name": "Bengaluru", "district": "Bengaluru Urban", "state": "Karnataka", "latitude": 12.9716, "longitude": 77.5946},
+        {"name": "Chennai", "district": "Chennai", "state": "Tamil Nadu", "latitude": 13.0827, "longitude": 80.2707},
+        {"name": "Kolkata", "district": "Kolkata", "state": "West Bengal", "latitude": 22.5726, "longitude": 88.3639},
+        {"name": "Hyderabad", "district": "Hyderabad", "state": "Telangana", "latitude": 17.3850, "longitude": 78.4867},
+        {"name": "Ahmedabad", "district": "Ahmedabad", "state": "Gujarat", "latitude": 23.0225, "longitude": 72.5714},
+        {"name": "Surat", "district": "Surat", "state": "Gujarat", "latitude": 21.1702, "longitude": 72.8311},
+        {"name": "Jaipur", "district": "Jaipur", "state": "Rajasthan", "latitude": 26.9124, "longitude": 75.7873},
+        {"name": "Lucknow", "district": "Lucknow", "state": "Uttar Pradesh", "latitude": 26.8467, "longitude": 80.9462},
+        {"name": "Varanasi", "district": "Varanasi", "state": "Uttar Pradesh", "latitude": 25.3176, "longitude": 82.9739},
+        {"name": "Kanpur", "district": "Kanpur Nagar", "state": "Uttar Pradesh", "latitude": 26.4499, "longitude": 80.3319},
+        {"name": "Chandigarh", "district": "Chandigarh", "state": "Chandigarh", "latitude": 30.7333, "longitude": 76.7794},
+        {"name": "Amritsar", "district": "Amritsar", "state": "Punjab", "latitude": 31.6340, "longitude": 74.8723},
+        {"name": "Shimla", "district": "Shimla", "state": "Himachal Pradesh", "latitude": 31.1048, "longitude": 77.1734},
+        {"name": "Dehradun", "district": "Dehradun", "state": "Uttarakhand", "latitude": 30.3165, "longitude": 78.0322},
+        {"name": "Srinagar", "district": "Srinagar", "state": "Jammu and Kashmir", "latitude": 34.0837, "longitude": 74.7973},
+        {"name": "Bhopal", "district": "Bhopal", "state": "Madhya Pradesh", "latitude": 23.2599, "longitude": 77.4126},
+        {"name": "Indore", "district": "Indore", "state": "Madhya Pradesh", "latitude": 22.7196, "longitude": 75.8577},
+        {"name": "Patna", "district": "Patna", "state": "Bihar", "latitude": 25.5941, "longitude": 85.1376},
+        {"name": "Ranchi", "district": "Ranchi", "state": "Jharkhand", "latitude": 23.3441, "longitude": 85.3096},
+        {"name": "Bhubaneswar", "district": "Khordha", "state": "Odisha", "latitude": 20.2961, "longitude": 85.8245},
+        {"name": "Puri", "district": "Puri", "state": "Odisha", "latitude": 19.8135, "longitude": 85.8312},
+        {"name": "Raipur", "district": "Raipur", "state": "Chhattisgarh", "latitude": 21.2514, "longitude": 81.6296},
+        {"name": "Kochi", "district": "Ernakulam", "state": "Kerala", "latitude": 9.9312, "longitude": 76.2673},
+        {"name": "Thiruvananthapuram", "district": "Thiruvananthapuram", "state": "Kerala", "latitude": 8.5241, "longitude": 76.9366},
+        {"name": "Visakhapatnam", "district": "Visakhapatnam", "state": "Andhra Pradesh", "latitude": 17.6868, "longitude": 83.2185},
+        {"name": "Vijayawada", "district": "NTR", "state": "Andhra Pradesh", "latitude": 16.5062, "longitude": 80.6480},
+        {"name": "Coimbatore", "district": "Coimbatore", "state": "Tamil Nadu", "latitude": 11.0168, "longitude": 76.9558},
+        {"name": "Madurai", "district": "Madurai", "state": "Tamil Nadu", "latitude": 9.9252, "longitude": 78.1198},
+        {"name": "Guwahati", "district": "Kamrup Metropolitan", "state": "Assam", "latitude": 26.1445, "longitude": 91.7362},
+        {"name": "Shillong", "district": "East Khasi Hills", "state": "Meghalaya", "latitude": 25.5788, "longitude": 91.8933},
+        {"name": "Agartala", "district": "West Tripura", "state": "Tripura", "latitude": 23.8315, "longitude": 91.2868},
+        {"name": "Imphal", "district": "Imphal West", "state": "Manipur", "latitude": 24.8170, "longitude": 93.9368},
+        {"name": "Panaji", "district": "North Goa", "state": "Goa", "latitude": 15.4909, "longitude": 73.8278},
+    ]
+
 # ── Open-Meteo City Definitions ─────────────────────────────────────
-# From 06_IMPLEMENTATION_PLAN.md §11 and sources.json
-CITIES = [
-    {
-        "name": "Mumbai",
-        "district": "Mumbai City",
-        "state": "Maharashtra",
-        "latitude": 19.076,
-        "longitude": 72.878,
-    },
-    {
-        "name": "Nagpur",
-        "district": "Nagpur",
-        "state": "Maharashtra",
-        "latitude": 21.146,
-        "longitude": 79.088,
-    },
-    {
-        "name": "Nashik",
-        "district": "Nashik",
-        "state": "Maharashtra",
-        "latitude": 19.997,
-        "longitude": 73.790,
-    },
-]
+CITIES = _get_configured_cities()
 
 # ── Open-Meteo API ──────────────────────────────────────────────────
-BASE_URL = "https://api.open-meteo.com/v1/forecast"
+BASE_API_URL = os.environ.get("OPEN_METEO_BASE_URL", "https://api.open-meteo.com/v1").rstrip("/")
+BASE_URL = f"{BASE_API_URL}/forecast"
+
+ARCHIVE_API_URL = os.environ.get("OPEN_METEO_ARCHIVE_URL", "https://archive-api.open-meteo.com/v1").rstrip("/")
+ARCHIVE_URL = f"{ARCHIVE_API_URL}/archive"
 
 # Current weather variables needed for the canonical event
 CURRENT_WEATHER_PARAMS = [
@@ -81,6 +118,41 @@ CURRENT_WEATHER_PARAMS = [
     "wind_speed_10m",
     "wind_direction_10m",
 ]
+
+
+def fetch_archive_weather(
+    latitude: float,
+    longitude: float,
+    start_date: str,
+    end_date: str,
+    timeout: int = 15,
+) -> dict | None:
+    """
+    Query historical weather observations from Open-Meteo Archive API.
+
+    IMPORTANT ARCHITECTURAL NOTE:
+    Historical weather data from the archive API represents past events.
+    It MUST NOT be emitted directly to the live streaming Kafka topic 'weather.raw'
+    because Spark Structured Streaming enforces a 30-minute watermark on
+    'event_time', which drops older events as late data. This utility is
+    integrated for batch analytics, backfill, and historical model evaluation.
+    """
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": start_date,
+        "end_date": end_date,
+        "hourly": ["temperature_2m", "precipitation", "weather_code", "wind_speed_10m"],
+    }
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.get(ARCHIVE_URL, params=params)
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as exc:
+        logger.warning("Open-Meteo Archive fetch failed for (%s, %s): %s", latitude, longitude, exc)
+        return None
+
 
 
 class OpenMeteoAdapter:

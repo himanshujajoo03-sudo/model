@@ -40,7 +40,7 @@ const useAnalyticsStore = create((set, get) => ({
     const { timeRange } = get()
     if (timeRange === 'all') return {}
     const now = new Date()
-    const hours = { '1h': 1, '6h': 6, '24h': 24, '7d': 168 }
+    const hours = { '1h': 1, '6h': 6, '24h': 24, '7d': 168, '30d': 720 }
     const start = new Date(now.getTime() - (hours[timeRange] || 24) * 3600 * 1000)
     return { start_time: start.toISOString() }
   },

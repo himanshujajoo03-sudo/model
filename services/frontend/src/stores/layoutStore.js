@@ -47,6 +47,12 @@ const useLayoutStore = create((set) => ({
       localStorage.setItem('meteo_audio_muted', String(next))
       return { audioMuted: next }
     }),
+
+  // Citizen Event Report Modal
+  citizenReportModalOpen: false,
+  setCitizenReportModalOpen: (open) => set({ citizenReportModalOpen: open }),
+  openCitizenReportModal: () => set({ citizenReportModalOpen: true }),
+  closeCitizenReportModal: () => set({ citizenReportModalOpen: false }),
 }))
 
 export default useLayoutStore

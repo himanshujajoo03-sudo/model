@@ -69,7 +69,10 @@ def build_canonical_event(
     """
     # Deterministic event_id from stable source fields
     loc = location or {}
-    hash_input = f"{source_type}|{source_id}|{timestamp}|{loc.get('latitude', '')}|{loc.get('longitude', '')}"
+    if source_type == "synthetic":
+        hash_input = source_id
+    else:
+        hash_input = f"{source_type}|{source_id}|{timestamp}|{loc.get('latitude', '')}|{loc.get('longitude', '')}"
     raw = bytearray(hashlib.sha256(hash_input.encode()).digest()[:16])
     raw[6] = (raw[6] & 0x0F) | 0x40  # version 4
     raw[8] = (raw[8] & 0x3F) | 0x80  # RFC 4122 variant

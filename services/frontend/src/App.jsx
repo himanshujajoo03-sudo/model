@@ -12,9 +12,11 @@ import SourceIntelligence from './pages/analytics/SourceIntelligence'
 import EmergingEvents from './pages/EmergingEvents'
 import ReportReview from './pages/ReportReview'
 import SystemMonitoring from './pages/SystemMonitoring'
+import CitizenReport from './pages/CitizenReport'
 import ComingSoonModal from './components/common/ComingSoonModal'
 import CommandPaletteModal from './components/common/CommandPaletteModal'
 import AlertNotificationDrawer from './components/common/AlertNotificationDrawer'
+import CitizenReportModal from './components/common/CitizenReportModal'
 
 function App() {
   return (
@@ -22,12 +24,15 @@ function App() {
       <ComingSoonModal />
       <CommandPaletteModal />
       <AlertNotificationDrawer />
+      <CitizenReportModal />
       <Routes>
         <Route path="/" element={<CommandCenter />} />
         <Route path="/events" element={<LiveEvents />} />
         <Route path="/events/:eventId" element={<EventIntelligence />} />
         <Route path="/verification" element={<VerificationCenter />} />
         <Route path="/geospatial" element={<GeospatialIntelligence />} />
+        <Route path="/citizen-report" element={<CitizenReport />} />
+        <Route path="/citizen" element={<Navigate to="/citizen-report" replace />} />
         <Route path="/analytics" element={<AnalyticsLayout />}>
           <Route index element={<Navigate to="/analytics/events" replace />} />
           <Route path="events" element={<EventTrends />} />

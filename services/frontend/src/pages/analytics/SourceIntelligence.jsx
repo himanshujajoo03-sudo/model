@@ -26,15 +26,22 @@ const VER_LABEL = {
 }
 
 const SRC_TYPE_LABEL = {
-  weather_api: 'Weather API',
-  government_dataset: 'Government / IMD',
-  website: 'Verified Portal',
-  rss: 'RSS Feeds',
-  citizen: 'Ground Reports',
-  social: 'Social Feeds',
-  simulated_social: 'Simulated Social',
-  synthetic: 'Doppler Radar Network',
-  canonical: 'Consolidated Canonical',
+  weather_api: 'Open-Meteo Synoptic AWS',
+  synoptic_telemetry: 'Open-Meteo Synoptic Telemetry',
+  reanalysis_archive: 'ECMWF ERA5 Reanalysis',
+  government_dataset: 'Data.gov.in Open Data',
+  government_warning: 'NDMA SACHET Disaster Warning',
+  open_government_data: 'Data.gov.in Open Data',
+  website: 'NDMA SACHET Portal',
+  rss: 'GDACS Global Disaster System',
+  global_alert: 'GDACS Global Disaster System',
+  citizen: 'Citizen Reports (Mastodon)',
+  citizen_report: 'Citizen Reports (Mastodon)',
+  social: 'Social Reports (Mastodon)',
+  social_media: 'Social Reports (Mastodon)',
+  simulated_social: 'Citizen Reports (Mastodon)',
+  synthetic: 'Open-Meteo Synoptic AWS',
+  canonical: 'Consolidated Meteorological Event',
 }
 
 const SRC_COLORS = [

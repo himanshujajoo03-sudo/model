@@ -49,7 +49,7 @@ try:
     from .prepare_data import prepare_training_data
     from .split_validator import validate_split_feasibility, SplitFeasibilityError
     from .leakage import check_leakage_detailed, LeakageError
-except ImportError:
+except (ImportError, ValueError):
     from classifier.rules import VALID_CATEGORIES
     from config.config_loader import load_ml_config
     from training.prepare_data import prepare_training_data
@@ -444,8 +444,11 @@ def train_classifier(
         train_df, val_df, test_df,
         policy=leakage_policy,
         near_duplicate_threshold=float(train_cfg.get("near_duplicate_threshold", 0.85)),
+        leakage_groups=leakage_groups,  # enables O(n) group-membership fast-path
     )
+    nd_methods = leakage_detailed.get("near_duplicate_check_methods", {})
     print(f"Data leakage audit (detailed, policy={leakage_policy}): {leakage_detailed}")
+    print(f"Near-duplicate check methods used: {nd_methods}")
 
     # 5. Construct and fit sklearn Pipeline (§19.4) with full Unicode token pattern
     pipeline = Pipeline([

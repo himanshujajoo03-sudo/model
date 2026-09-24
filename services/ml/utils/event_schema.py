@@ -104,7 +104,9 @@ class NormalizedEvent:
         # 2. Category
         cat = data.get("category")
         if cat is None and isinstance(data.get("event"), dict):
-            cat = data["event"].get("category")
+            cat = data["event"].get("category") or data["event"].get("event_category")
+        if cat is None:
+            cat = data.get("event_category")
         if cat is None and isinstance(data.get("ai"), dict):
             cat = data["ai"].get("classified_category")
         if cat is None:

@@ -12,7 +12,6 @@ from typing import Optional
 
 from .interface import BaseClassifier
 from .rules import canonicalize_category
-from config.config_loader import load_ml_config
 try:
     from ..config.config_loader import load_ml_config
 except (ImportError, ValueError):

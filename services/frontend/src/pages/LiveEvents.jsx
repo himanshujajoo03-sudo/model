@@ -107,12 +107,18 @@ function fmtPct(v) {
   return `${Math.round(v * 100)}%`
 }
 
+function formatLatency(ms) {
+  if (ms === null || ms === undefined || isNaN(ms)) return null
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
 export default function LiveEvents() {
   const navigate = useNavigate()
   const {
     events, total, totalPages, page, pageSize,
     filters, sortBy, sortOrder, search,
-    loading, error, lastUpdated,
+    loading, error, lastUpdated, isLiveStreaming,
     setPage, setSortBy, setSortOrder,
     setSearch, setFilters, clearFilters,
     startPolling, stopPolling,
@@ -180,13 +186,26 @@ export default function LiveEvents() {
       (e.city || '').toLowerCase().includes(q) ||
       (e.state || '').toLowerCase().includes(q) ||
       (e.event_category || '').toLowerCase().includes(q) ||
+      (e.classified_category || '').toLowerCase().includes(q) ||
+      (e.description || '').toLowerCase().includes(q) ||
       (e.source_name || '').toLowerCase().includes(q) ||
-      (e.event_id || '').toLowerCase().includes(q)
+      (e.event_id || '').toLowerCase().includes(q) ||
+      (q.includes('reclass') && e.classified_category && e.classified_category !== e.event_category)
     )
   }, [events, search])
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length
   const currentSortIdx = Math.max(0, SORT_OPTIONS.findIndex((s) => s.field === sortBy && s.order === sortOrder))
+
+  const avgLatencyText = useMemo(() => {
+    const eventsWithLatency = displayEvents.filter(
+      (e) => typeof e.latency_ms === 'number' && !isNaN(e.latency_ms)
+    )
+    if (!eventsWithLatency.length) return null
+    const sum = eventsWithLatency.reduce((acc, e) => acc + e.latency_ms, 0)
+    const avg = sum / eventsWithLatency.length
+    return formatLatency(avg)
+  }, [displayEvents])
 
   const changeSort = (idx) => {
     const opt = SORT_OPTIONS[idx]
@@ -197,15 +216,15 @@ export default function LiveEvents() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50/70 overflow-hidden">
+    <div className="flex min-h-screen bg-slate-50/70">
       {/* Unified Sidebar */}
       <Sidebar />
 
       {/* Main Container */}
-      <div className="flex flex-col flex-1 min-w-0 bg-slate-50/70 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 bg-slate-50/70">
         <Header />
 
-        <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4 flex flex-col gap-4 scrollbar-thin bg-slate-50/70">
+        <div className="flex-1 px-4 lg:px-6 py-4 flex flex-col gap-4 bg-slate-50/70">
           {/* Header row */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 flex-shrink-0">
             <div>
@@ -216,6 +235,33 @@ export default function LiveEvents() {
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {total.toLocaleString()} Total Events
                 </span>
+                <span
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs"
+                  title="Average end-to-end processing latency across visible events (db_written_at - event_timestamp)"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  <span>Avg processing: {avgLatencyText || 'N/A'}</span>
+                </span>
+                {isLiveStreaming ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 shadow-xs"
+                    title="Real-time Server-Sent Events stream active"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    LIVE SSE
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200"
+                    title="Polling fallback active"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+                    POLLING
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500">
                 Continuous atmospheric intelligence streaming across Mumbai, Nagpur & Nashik
@@ -428,11 +474,30 @@ export default function LiveEvents() {
                                 <WeatherPhenomenonSymbol category={evt.event_category} size={18} />
                               </div>
                               <div className="min-w-0">
-                                <span className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors block truncate">
-                                  {CAT_LABELS[evt.event_category] || evt.event_category}
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors block truncate">
+                                    {CAT_LABELS[evt.event_category] || evt.event_category}
+                                  </span>
+                                  {evt.classified_category && evt.classified_category !== evt.event_category && (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200"
+                                      title={`Original category was "${evt.event_category}", reclassified as "${evt.classified_category}" by AI classifier`}
+                                    >
+                                      <span>Reclassified:</span>
+                                      <span className="font-mono">{evt.event_category} → {evt.classified_category}</span>
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[10px] text-slate-400 font-mono block">
                                   ID: {evt.event_id?.slice(0, 8)}… · {ago(evt.event_timestamp || evt.created_at)}
+                                  {evt.latency_ms != null && (
+                                    <span
+                                      className="ml-1.5 font-sans font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200/60 inline-flex items-center gap-0.5"
+                                      title="End-to-end processing latency (db_written_at - event_timestamp)"
+                                    >
+                                      ⚡ processed in {formatLatency(evt.latency_ms)}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -445,7 +510,7 @@ export default function LiveEvents() {
                               <div>
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-xs font-bold text-slate-800">
-                                    {evt.city || 'Regional'}
+                                    {evt.city || evt.district || 'Location Unavailable'}
                                   </span>
                                   {isTargetCity && (
                                     <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -454,7 +519,7 @@ export default function LiveEvents() {
                                   )}
                                 </div>
                                 <div className="text-[10px] text-slate-400 font-medium">
-                                  {evt.state || 'India'} {evt.district ? `· ${evt.district}` : ''}
+                                  {evt.state ? `${evt.state}${evt.district && evt.district !== evt.city ? ` · ${evt.district}` : ''}` : (evt.district || evt.country || 'India')}
                                 </div>
                               </div>
                             </div>
@@ -522,7 +587,7 @@ export default function LiveEvents() {
                                   setPreviewEvent(evt)
                                 }}
                                 className="btn-secondary text-xs py-1 px-2.5 shadow-2xs font-semibold hover:border-blue-400 hover:text-blue-700"
-                                title="Quick Preview Dossier"
+                                title="Quick Preview Event Summary"
                               >
                                 👁️ Preview
                               </button>
@@ -533,9 +598,9 @@ export default function LiveEvents() {
                                   navigate(`/events/${evt.event_id}`)
                                 }}
                                 className="btn-primary text-xs py-1 px-2.5 shadow-2xs font-bold"
-                                title="Open Full Event Investigation"
+                                title="Open Full Event Details"
                               >
-                                Dossier →
+                                Event Details →
                               </button>
                             </div>
                           </td>
@@ -618,16 +683,25 @@ export default function LiveEvents() {
                   <WeatherPhenomenonSymbol category={previewEvent.event_category} size={22} />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-sm font-bold text-slate-900 truncate">
                       {CAT_LABELS[previewEvent.event_category] || previewEvent.event_category}
                     </h2>
                     <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                       #{previewEvent.event_id?.slice(0, 8)}
                     </span>
+                    {previewEvent.classified_category && previewEvent.classified_category !== previewEvent.event_category && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200"
+                        title={`Original category was "${previewEvent.event_category}", reclassified as "${previewEvent.classified_category}" by AI classifier`}
+                      >
+                        <span>Reclassified:</span>
+                        <span className="font-mono">{previewEvent.event_category} → {previewEvent.classified_category}</span>
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 font-medium truncate">
-                    {previewEvent.city} · {previewEvent.state || 'Maharashtra'}
+                    {previewEvent.city || previewEvent.district || 'Location Unavailable'} · {previewEvent.state || previewEvent.country || 'India'}
                   </p>
                 </div>
               </div>
@@ -682,6 +756,11 @@ export default function LiveEvents() {
                   <div className="text-sm font-bold font-mono text-blue-600">
                     {fmtPct(previewEvent.classification_confidence)}
                   </div>
+                  {previewEvent.classified_category && previewEvent.classified_category !== previewEvent.event_category && (
+                    <span className="text-[10px] text-amber-700 font-semibold block mt-1">
+                      Reclassified as {CAT_LABELS[previewEvent.classified_category] || previewEvent.classified_category}
+                    </span>
+                  )}
                 </div>
 
                 <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/50">
@@ -692,6 +771,21 @@ export default function LiveEvents() {
                     {fmtPct(previewEvent.credibility_score)}
                   </div>
                 </div>
+
+                {previewEvent.latency_ms != null && (
+                  <div className="col-span-2 p-3 rounded-xl border border-blue-200 bg-blue-50/40">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1">
+                      End-to-End Processing Latency
+                    </span>
+                    <div className="text-sm font-bold font-mono text-blue-700 flex items-center gap-1.5">
+                      <span>⚡</span>
+                      <span>processed in {formatLatency(previewEvent.latency_ms)}</span>
+                      <span className="text-[10px] text-slate-400 font-sans font-normal ml-auto">
+                        (db_written_at - event_timestamp)
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Geographic Coordinates Card */}
