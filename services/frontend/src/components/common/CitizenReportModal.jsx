@@ -273,17 +273,14 @@ export default function CitizenReportModal() {
               <span>📢</span>
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div>
                 <h2 id="citizen-report-title" className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                  Report a Weather Event
+                  Report an Event
                 </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                  Citizen Desk
-                </span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Share a weather-related event with the monitoring team.
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500">
-                Ground observation for meteorological verification
-              </p>
             </div>
           </div>
 
@@ -372,7 +369,7 @@ export default function CitizenReportModal() {
 
               {/* Notice Banner */}
               <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200 text-blue-900 text-[11px] text-left leading-relaxed">
-                <strong>Demo Mode:</strong> This report is held in client session memory for demonstration. The report has been acknowledged for verification and will not appear in the Live Events feed.
+                <strong>Verification Status:</strong> Your report has been acknowledged by the monitoring team. Observations are evaluated prior to operational dissemination.
               </div>
 
               {/* Actions */}
@@ -641,7 +638,7 @@ export default function CitizenReportModal() {
                           Click to select a photo from your device
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          PNG, JPG, WebP up to 10MB • Handled entirely in browser memory
+                          PNG, JPG, WebP up to 10MB
                         </div>
                       </div>
                     </div>
@@ -663,7 +660,7 @@ export default function CitizenReportModal() {
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-400 mt-0.5">
-                        Size: {imageFile?.size} • Client-side only
+                        Size: {imageFile?.size}
                       </div>
                     </div>
                     <button

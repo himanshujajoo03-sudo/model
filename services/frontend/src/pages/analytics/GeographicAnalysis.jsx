@@ -262,6 +262,8 @@ export default function GeographicAnalysis() {
     }
   }, [events])
 
+  const activeCityCount = ACTIVE_CITIES?.length || Object.keys(stats?.by_city || {}).length || 0
+
   return (
     <div className="space-y-4 select-none">
       {/* Header */}
@@ -272,11 +274,11 @@ export default function GeographicAnalysis() {
               Geographic Intelligence
             </h1>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              3-Hub Corridor Live
+              National Coverage Active
             </span>
           </div>
           <p className="text-xs text-slate-500">
-            Spatial distribution and atmospheric concentration across active hubs (Mumbai, Nagpur, Nashik)
+            Spatial distribution and atmospheric conditions across active Indian weather hubs.
           </p>
         </div>
         {lastUpdated && (
@@ -286,23 +288,23 @@ export default function GeographicAnalysis() {
         )}
       </div>
 
-      {/* 3-City MVP Live Banner */}
+      {/* Active Corridors Live Banner */}
       <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
           <div>
             <div className="text-xs font-bold text-slate-800">
-              Active Urban Corridors: Mumbai, Nagpur & Nashik
+              Active Urban Corridors: {activeCityCount > 0 ? `${activeCityCount} Cities` : 'National Coverage Active'}
             </div>
             <div className="text-[11px] text-slate-500">
-              High-frequency multi-sensor coverage and Doppler fusion is currently operational across 3 core hubs.
+              Real-time weather and event intelligence is being monitored across active geographic hubs.
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-            Phase II: +15 Cities Updated Soon
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
+            Pan-India Multi-Sensor Array
           </span>
         </div>
       </div>
@@ -310,8 +312,8 @@ export default function GeographicAnalysis() {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: 'Active Hubs Covered', value: `${Object.keys(stats?.by_city || {}).length} Hubs`, icon: '🏙️', color: '#2563EB', desc: 'Live Telemetry' },
-          { label: 'Highest Atmospheric Volume', value: Object.entries(stats?.by_city || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Mumbai', icon: '📍', color: '#EA580C', desc: 'Precipitation Epicenter' },
+          { label: 'Active Hubs Covered', value: `${activeCityCount} Hubs`, icon: '🏙️', color: '#2563EB', desc: 'Live Telemetry' },
+          { label: 'Highest Atmospheric Volume', value: Object.entries(stats?.by_city || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || 'National', icon: '📍', color: '#EA580C', desc: 'Precipitation Epicenter' },
           { label: 'Total Regional Events', value: stats?.total_events ?? 0, icon: '⚡', color: '#0F172A', desc: 'Validated Detections' },
         ].map(({ label, value, icon, color, desc }) => (
           <div key={label} className="card-white p-3.5 space-y-1 border border-slate-200 shadow-2xs hover:shadow-sm transition-all">

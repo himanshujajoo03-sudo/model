@@ -1,5 +1,5 @@
 import React from 'react'
-import useCommandCenterStore from '../../stores/commandCenterStore'
+import { useNavigate } from 'react-router-dom'
 
 function formatNumber(n) {
   if (n === null || n === undefined) return '—'
@@ -16,33 +16,37 @@ function KpiCard({
   badgeColor,
   icon,
   onClick,
-  active = false,
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className={`card-white p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between min-w-0 cursor-pointer transition-all duration-200 shadow-xs ${
-        active
-          ? 'ring-2 ring-blue-600/30 border-blue-600 shadow-sm'
-          : 'hover:border-slate-300 hover:shadow-card'
-      }`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick?.()
+        }
+      }}
+      aria-label={`${label}: ${formatNumber(value)}. Click to view filtered live events.`}
+      className="card-white p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between min-w-0 cursor-pointer transition-all duration-200 shadow-xs hover:border-blue-400 hover:shadow-card hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 group select-none"
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0 truncate">
           <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs border border-slate-100"
+            className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs border border-slate-100 group-hover:scale-105 transition-transform"
             style={{ backgroundColor: `${color}12`, color: color }}
           >
             {icon}
           </div>
-          <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase truncate">
+          <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase truncate group-hover:text-slate-900 transition-colors">
             {label}
           </span>
         </div>
 
         {badgeText && (
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 font-mono shadow-2xs"
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 font-mono shadow-2xs group-hover:opacity-90 transition-opacity"
             style={{ backgroundColor: badgeBg, color: badgeColor }}
           >
             {badgeText}
@@ -51,11 +55,12 @@ function KpiCard({
       </div>
 
       <div className="flex items-baseline justify-between mt-1">
-        <div className="text-2xl sm:text-[26px] font-black text-slate-900 mono tracking-tight leading-none">
+        <div className="text-2xl sm:text-[26px] font-black text-slate-900 mono tracking-tight leading-none group-hover:text-blue-600 transition-colors">
           {formatNumber(value)}
         </div>
-        <div className="text-[10.5px] font-semibold text-slate-400 truncate text-right ml-2">
-          {sub}
+        <div className="text-[10.5px] font-semibold text-slate-400 truncate text-right ml-2 group-hover:text-blue-600 transition-colors flex items-center justify-end gap-1">
+          <span>{sub}</span>
+          <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
         </div>
       </div>
     </div>
@@ -63,6 +68,7 @@ function KpiCard({
 }
 
 export default function KpiStrip({ stats }) {
+  const navigate = useNavigate()
   const totalEvents = stats?.total_events ?? null
   const bySeverity = stats?.by_severity || {}
   const byVerification = stats?.by_verification_status || {}
@@ -77,16 +83,13 @@ export default function KpiStrip({ stats }) {
   const verifiedPct =
     totalEvents > 0 ? `${Math.round((verified / totalEvents) * 100)}% verified` : '—'
 
-  const filters = useCommandCenterStore((s) => s.filters)
-  const setFilters = useCommandCenterStore((s) => s.setFilters)
-
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 select-none">
-      {/* 1. Active Events */}
+      {/* 1. Active Events -> Live Events (All) */}
       <KpiCard
         label="Active Events"
         value={totalEvents}
-        sub="3 MVP Cities"
+        sub="Pan-India Grid"
         color="#2563EB"
         badgeText="Live"
         badgeBg="#EFF6FF"
@@ -98,11 +101,10 @@ export default function KpiStrip({ stats }) {
             <polyline points="2 12 12 17 22 12" />
           </svg>
         }
-        active={!filters.severity && !filters.verification}
-        onClick={() => setFilters({ severity: null, verification: null })}
+        onClick={() => navigate('/events')}
       />
 
-      {/* 2. High / Critical Risk */}
+      {/* 2. High Risk / Critical Threat -> Live Events (severity=critical) */}
       <KpiCard
         label="High Risk Threat"
         value={highRisk}
@@ -118,15 +120,10 @@ export default function KpiStrip({ stats }) {
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
         }
-        active={filters.severity === 'high'}
-        onClick={() =>
-          setFilters({
-            severity: filters.severity === 'high' ? null : 'high',
-          })
-        }
+        onClick={() => navigate('/events?severity=critical')}
       />
 
-      {/* 3. Verified Signals */}
+      {/* 3. Verified Events -> Live Events (verification_status=verified) */}
       <KpiCard
         label="Verified Events"
         value={verified}
@@ -141,15 +138,10 @@ export default function KpiStrip({ stats }) {
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         }
-        active={filters.verification === 'verified'}
-        onClick={() =>
-          setFilters({
-            verification: filters.verification === 'verified' ? null : 'verified',
-          })
-        }
+        onClick={() => navigate('/events?verification_status=verified')}
       />
 
-      {/* 4. Under Review */}
+      {/* 4. Under Review / Pending -> Live Events (verification_status=pending) */}
       <KpiCard
         label="Under Review"
         value={underReview}
@@ -165,12 +157,7 @@ export default function KpiStrip({ stats }) {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         }
-        active={filters.verification === 'needs_review'}
-        onClick={() =>
-          setFilters({
-            verification: filters.verification === 'needs_review' ? null : 'needs_review',
-          })
-        }
+        onClick={() => navigate('/events?verification_status=pending')}
       />
     </div>
   )

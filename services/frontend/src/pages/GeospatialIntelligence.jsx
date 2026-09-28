@@ -296,11 +296,11 @@ function MapLegend({ layer, selectedCity, selectedState }) {
       <div className="space-y-1.5 pb-2.5 mb-2.5 border-b border-slate-100 text-xs">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-xs flex-shrink-0" />
-          <span className="text-slate-700 font-semibold text-[11px]">Active City Hub (3 Live)</span>
+          <span className="text-slate-700 font-semibold text-[11px]">Active City Hub ({ACTIVE_CITIES.length} Live)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80 border border-white shadow-xs flex-shrink-0" />
-          <span className="text-slate-600 font-medium text-[11px]">Updated Soon (+15 Planned)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white shadow-xs flex-shrink-0" />
+          <span className="text-slate-600 font-medium text-[11px]">National Weather Corridors</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-4 h-0.5 bg-slate-400 rounded flex-shrink-0" />
@@ -422,10 +422,10 @@ function EventMarkers({ events, layer, onSelectEvent }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Section 14: Split Layout Information Panel
-   - Selected City Details (Pan-India Cities)
-   - Selected Event Record
-   - National Scope Overview (All India)
+   Section 14: Responsive 3-Column Intelligence Grid
+   - Selected City Corridor Details (Pan-India Cities)
+   - Selected Event Telemetry Record
+   - National Scope Overview & Active Monitoring Corridors
    ═══════════════════════════════════════════════════════════════ */
 
 function InformationPanel({
@@ -435,6 +435,7 @@ function InformationPanel({
   onSelectCity,
   onClearSelection,
   onOpenUpcomingModal,
+  onCompareHubs,
 }) {
   const navigate = useNavigate()
   const cityMeta = useMemo(() => getCityMetadata(selectedCity), [selectedCity])
@@ -464,160 +465,210 @@ function InformationPanel({
   }, [events])
 
   return (
-    <div className="w-full lg:w-[380px] xl:w-[420px] flex-shrink-0 border-t lg:border-t-0 lg:border-l border-slate-200 bg-white overflow-y-auto p-4 space-y-4 scrollbar-thin">
+    <div className="w-full space-y-6">
       {/* ── CASE 1: Specific Event is Inspected ── */}
       {selectedEvent && (
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-xs">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-brand-blue-700 bg-brand-blue-50 border border-brand-blue-200 px-2 py-0.5 rounded uppercase tracking-wider">
-              Inspected Event
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-brand-blue-700 bg-brand-blue-50 border border-brand-blue-200 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                Inspected Event Telemetry
+              </span>
+              <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+                ID: {selectedEvent.event_id?.slice(0, 16)}...
+              </span>
+            </div>
             <button
               onClick={() => useGeospatialStore.getState().clearSelectedEvent()}
-              className="text-xs text-slate-400 hover:text-slate-700 p-1"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5"
               title="Close event details"
             >
-              ✕
+              <span>✕</span>
+              <span>Close Inspection</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{CAT_ICONS[selectedEvent.event_category] || '🌧️'}</span>
-            <div>
-              <div className="font-bold text-sm text-slate-900 leading-tight">
-                {CAT[selectedEvent.event_category] || selectedEvent.event_category}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Card 1: Core Phenomenon & Severity */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0">
+                    {CAT_ICONS[selectedEvent.event_category] || '🌧️'}
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 leading-tight">
+                      {CAT[selectedEvent.event_category] || selectedEvent.event_category}
+                    </h4>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      {selectedEvent.city || selectedEvent.district || 'National Meteorological Grid'} · {selectedEvent.state || 'India'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3.5 pt-3 border-t border-slate-100">
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Severity</span>
+                    <span className="font-bold text-slate-900 capitalize flex items-center gap-1.5 mt-1 text-xs">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: SEV_COLOR[selectedEvent.severity] || '#0284C7' }}
+                      />
+                      {SEV_LABEL[selectedEvent.severity] || selectedEvent.severity}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Confidence</span>
+                    <span className="font-bold text-slate-900 block mt-1 text-xs">
+                      {fmtPct(selectedEvent.classification_confidence)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="text-xs text-slate-500 font-medium">
-                {selectedEvent.city || selectedEvent.district || 'National Meteorological Grid'} · {selectedEvent.state || 'India'}
+
+              <button
+                onClick={() => navigate(`/events/${selectedEvent.event_id}`)}
+                className="w-full btn-primary text-xs py-2 shadow-xs flex items-center justify-center gap-1.5"
+              >
+                <span>Open Full Event Details</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            {/* Card 2: Geospatial Coordinates & Validation Pipeline */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Sensor Grid & Spatial Telemetry
+                </span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-500 font-medium">GPS Coordinates:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {selectedEvent.latitude?.toFixed(4)}° N, {selectedEvent.longitude?.toFixed(4)}° E
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-500 font-medium">Validation Status:</span>
+                    <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                      <span>✓</span>
+                      <span>Multi-Sensor Validated</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <span className="text-slate-500 font-medium">Last Observed:</span>
+                    <span className="font-medium text-slate-700">{ago(selectedEvent.last_seen)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-500 bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/50">
+                Corroborated by IMD Doppler radar reflectivity, AWS ground stations & satellite pass.
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200/70">
-            <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-              <span className="text-slate-400 block text-[10px] font-medium">Severity</span>
-              <span className="font-bold text-slate-900 capitalize flex items-center gap-1 mt-0.5">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: SEV_COLOR[selectedEvent.severity] || '#0284C7' }}
-                />
-                {SEV_LABEL[selectedEvent.severity] || selectedEvent.severity}
-              </span>
-            </div>
-            <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-              <span className="text-slate-400 block text-[10px] font-medium">Confidence</span>
-              <span className="font-bold text-slate-900 block mt-0.5">
-                {fmtPct(selectedEvent.classification_confidence)}
-              </span>
+            {/* Card 3: Regional Action & Corridor Linking */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Corridor Focus & Actions
+                </span>
+                {selectedEvent.city ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      This event was localized within the <strong className="text-slate-900">{selectedEvent.city}</strong> regional corridor mesh.
+                    </p>
+                    <button
+                      onClick={() => onSelectCity(selectedEvent.city)}
+                      className="w-full btn-secondary text-xs py-2 shadow-2xs flex items-center justify-center gap-1.5"
+                    >
+                      <span>📍</span>
+                      <span>Focus Map on {selectedEvent.city} Hub</span>
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Detected across national synoptic observation grid. You can filter the map or reset view.
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  useGeospatialStore.getState().clearSelectedEvent()
+                  onClearSelection()
+                }}
+                className="w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Reset All Selections
+              </button>
             </div>
           </div>
-
-          <div className="text-xs text-slate-500 space-y-1">
-            <div className="flex justify-between">
-              <span>Coordinates:</span>
-              <span className="font-mono text-slate-700">
-                {selectedEvent.latitude?.toFixed(4)}° N, {selectedEvent.longitude?.toFixed(4)}° E
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Detection Pipeline:</span>
-              <span className="font-semibold text-emerald-700">Multi-Sensor Validated</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Last Reported:</span>
-              <span className="text-slate-700">{ago(selectedEvent.last_seen)}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate(`/events/${selectedEvent.event_id}`)}
-            className="w-full btn-primary text-xs py-2 shadow-xs"
-          >
-            Open Full Event Details →
-          </button>
         </div>
       )}
 
-      {/* ── CASE 2: Specific City is Selected (Mumbai, Nagpur, Nashik) ── */}
+      {/* ── CASE 2: Specific City is Selected (Mumbai, Nagpur, Nashik, etc.) ── */}
       {selectedCity && cityMeta && (
-        <div className="space-y-3.5">
-          {/* City Details Header Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-            {/* City Photo with Gradient Overlay & Status Badge */}
-            <div className="relative h-36 w-full bg-slate-100 overflow-hidden">
-              <img
-                src={cityMeta.photo}
-                alt={cityMeta.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null
-                  e.target.src = '/weather_radar_hero.jpg'
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-              
-              {/* Status Badge */}
-              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                Live Telemetry Hub
-              </div>
-
-              {/* City Title on Image */}
-              <div className="absolute bottom-2.5 left-3 right-3 text-white">
-                <div className="text-lg font-extrabold flex items-center gap-1.5 leading-none drop-shadow-sm">
-                  <span>📍</span>
-                  <span>{cityMeta.name}</span>
-                </div>
-                <div className="text-xs text-slate-200 font-medium mt-0.5 drop-shadow-sm">
-                  {cityMeta.state} · {cityMeta.region}
-                </div>
-              </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                Selected Corridor: {cityMeta.name}
+              </span>
+              <span className="text-xs text-slate-500 font-medium">
+                {cityMeta.state} · {cityMeta.region}
+              </span>
             </div>
+            <button
+              onClick={onClearSelection}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-md transition-colors"
+            >
+              Reset View to All India
+            </button>
+          </div>
 
-            {/* City Description & Sensor Spec */}
-            <div className="p-3.5 space-y-2.5 text-xs">
-              <p className="text-slate-600 leading-relaxed">
-                {cityMeta.description}
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/80">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Sensor Grid
-                  </span>
-                  <span className="font-semibold text-slate-800 text-[11px] block mt-0.5">
-                    {cityMeta.sensors}
-                  </span>
-                </div>
-                <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/80">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Coordinates
-                  </span>
-                  <span className="font-mono font-semibold text-slate-800 text-[11px] block mt-0.5">
-                    {cityMeta.lat.toFixed(4)}° N, {cityMeta.lon.toFixed(4)}° E
-                  </span>
-                </div>
-              </div>
-
-              {/* Monitored Phenomenon Tags */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Column 1: Corridor Profile & Identity */}
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs flex flex-col justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Targeted Phenomena:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {cityMeta.weatherTypes.map((t) => (
-                    <span
-                      key={t}
-                      className="px-2 py-0.5 rounded-md bg-brand-blue-50 text-brand-blue-800 border border-brand-blue-200/60 text-[10.5px] font-medium"
-                    >
-                      {t}
-                    </span>
-                  ))}
+                <div className="relative h-36 w-full bg-slate-100 overflow-hidden">
+                  <img
+                    src={cityMeta.photo}
+                    alt={cityMeta.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = '/weather_radar_hero.jpg'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
+                  
+                  {/* Status Badge */}
+                  <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-md">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    Live Telemetry Hub
+                  </div>
+
+                  {/* City Title on Image */}
+                  <div className="absolute bottom-2.5 left-3 right-3 text-white">
+                    <div className="text-lg font-extrabold flex items-center gap-1.5 leading-none drop-shadow-sm">
+                      <span>📍</span>
+                      <span>{cityMeta.name}</span>
+                    </div>
+                    <div className="text-xs text-slate-200 font-medium mt-0.5 drop-shadow-sm">
+                      {cityMeta.state} · {cityMeta.region}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-3 text-xs">
+                  <p className="text-slate-600 leading-relaxed">
+                    {cityMeta.description}
+                  </p>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="p-4 pt-0 flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/events?city=${cityMeta.name}`)}
                   className="flex-1 btn-primary text-xs py-2 shadow-xs"
@@ -632,183 +683,391 @@ function InformationPanel({
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Active Events in this City */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 space-y-2.5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                {cityMeta.name} Live Events ({cityEvents.length})
-              </h4>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Active Stream
-              </span>
-            </div>
+            {/* Column 2: Sensor Grid & Atmospheric Scope */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Sensor Grid & Scope
+                </span>
 
-            {cityEvents.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200/80">
-                <span className="text-base block mb-1">✨</span>
-                All atmospheric parameters within nominal safety thresholds in {cityMeta.name}.
-              </div>
-            ) : (
-              <div className="space-y-1.5 max-h-[220px] overflow-y-auto scrollbar-thin">
-                {cityEvents.map((evt) => (
-                  <div
-                    key={evt.event_id}
-                    onClick={() => useGeospatialStore.getState().setSelectedEvent(evt)}
-                    className="p-2 rounded-xl border border-slate-200/80 hover:border-brand-blue-300 hover:bg-brand-blue-50/30 cursor-pointer transition-all flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base flex-shrink-0">{CAT_ICONS[evt.event_category] || '🌧️'}</span>
-                      <div className="min-w-0 truncate">
-                        <div className="text-xs font-bold text-slate-900 truncate">
-                          {CAT[evt.event_category] || evt.event_category}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          {ago(evt.last_seen)} · {fmtPct(evt.classification_confidence)} conf
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded capitalize flex-shrink-0"
-                      style={{
-                        backgroundColor: `${SEV_COLOR[evt.severity] || '#0284C7'}15`,
-                        color: SEV_COLOR[evt.severity] || '#0284C7',
-                      }}
-                    >
-                      {evt.severity}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Sensor Grid
+                    </span>
+                    <span className="font-semibold text-slate-800 text-xs block mt-1">
+                      {cityMeta.sensors}
                     </span>
                   </div>
-                ))}
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Coordinates
+                    </span>
+                    <span className="font-mono font-semibold text-slate-800 text-xs block mt-1">
+                      {cityMeta.lat.toFixed(4)}° N, {cityMeta.lon.toFixed(4)}° E
+                    </span>
+                  </div>
+                </div>
+
+                {/* Monitored Phenomenon Tags */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Targeted Atmospheric Phenomena:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {cityMeta.weatherTypes.map((t) => (
+                      <span
+                        key={t}
+                        className="px-2 py-0.5 rounded-md bg-brand-blue-50 text-brand-blue-800 border border-brand-blue-200/60 text-[11px] font-medium"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
+
+              <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/70 rounded-xl text-xs text-emerald-800">
+                Continuous telemetry streaming to national event correlation engine.
+              </div>
+            </div>
+
+            {/* Column 3: Live Corridor Events */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    {cityMeta.name} Live Events ({cityEvents.length})
+                  </h4>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Active Stream
+                  </span>
+                </div>
+
+                {cityEvents.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-xl block mb-1.5">✨</span>
+                    All atmospheric parameters within nominal safety thresholds in {cityMeta.name}.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                    {cityEvents.map((evt) => (
+                      <div
+                        key={evt.event_id}
+                        onClick={() => useGeospatialStore.getState().setSelectedEvent(evt)}
+                        className="p-2.5 rounded-xl border border-slate-200/80 hover:border-brand-blue-300 hover:bg-brand-blue-50/30 cursor-pointer transition-all flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-lg flex-shrink-0">{CAT_ICONS[evt.event_category] || '🌧️'}</span>
+                          <div className="min-w-0 truncate">
+                            <div className="text-xs font-bold text-slate-900 truncate">
+                              {CAT[evt.event_category] || evt.event_category}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {ago(evt.last_seen)} · {fmtPct(evt.classification_confidence)} conf
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded capitalize flex-shrink-0"
+                          style={{
+                            backgroundColor: `${SEV_COLOR[evt.severity] || '#0284C7'}15`,
+                            color: SEV_COLOR[evt.severity] || '#0284C7',
+                          }}
+                        >
+                          {evt.severity}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="text-[11px] text-slate-400 font-mono text-center">
+                Click any event to inspect its full sensor telemetry on the map.
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── CASE 3: National Overview (No city or event selected) ── */}
       {!selectedCity && !selectedEvent && (
-        <div className="space-y-4">
-          {/* Coverage Overview Cards */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                National Coverage Scope
-              </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                3 Hubs Live
-              </span>
+        <div className="space-y-6">
+          {/* Row 1: High-Level Analytics (3 Columns) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Card 1: National Coverage Scope */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    National Coverage Scope
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    National Coverage Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center shadow-2xs">
+                    <div className="text-base font-bold text-slate-900">{analysis?.total || 0}</div>
+                    <div className="text-[10px] text-slate-500 font-medium">Events</div>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center shadow-2xs">
+                    <div className="text-base font-bold text-rose-600">{analysis?.highCritical || 0}</div>
+                    <div className="text-[10px] text-slate-500 font-medium">Elevated</div>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center shadow-2xs">
+                    <div className="text-base font-bold text-brand-blue-600">{ACTIVE_CITIES.length} Hubs</div>
+                    <div className="text-[10px] text-slate-500 font-medium">Active Corridors</div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+                  Real-time synchronization across IMD synoptic radar, Doppler stations, AWS mesonet, and multi-agency feeds.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={onCompareHubs}
+                className="w-full btn-secondary text-xs py-2 shadow-2xs font-bold flex items-center justify-center gap-1.5"
+              >
+                <span>⚖️</span>
+                <span>Compare Active Corridors ({ACTIVE_CITIES.length})</span>
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center shadow-2xs">
-                <div className="text-base font-bold text-slate-900">{analysis?.total || 0}</div>
-                <div className="text-[10px] text-slate-500 font-medium">Events</div>
+            {/* Card 2: Phenomenon Distribution */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Phenomenon Distribution
+                  </h3>
+                  <span className="text-[10px] font-mono text-slate-400">All India</span>
+                </div>
+
+                {analysis?.categories && analysis.categories.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {analysis.categories.slice(0, 4).map(({ cat, count, pct }) => (
+                      <div key={cat}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-slate-700 font-medium flex items-center gap-1.5">
+                            <span>{CAT_ICONS[cat] || '🌧️'}</span>
+                            <span>{CAT[cat] || cat}</span>
+                          </span>
+                          <span className="font-mono text-slate-500">{count} ({pct}%)</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{ width: `${pct}%`, backgroundColor: CAT_COLOR[cat] || '#0284C7' }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
+                    No active meteorological phenomena recorded in current window.
+                  </div>
+                )}
               </div>
-              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center shadow-2xs">
-                <div className="text-base font-bold text-rose-600">{analysis?.highCritical || 0}</div>
-                <div className="text-[10px] text-slate-500 font-medium">Elevated</div>
+
+              <div className="text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100">
+                Classified via real-time ML anomaly detection pipeline.
               </div>
-              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center shadow-2xs">
-                <div className="text-base font-bold text-brand-blue-600">3 Hubs</div>
-                <div className="text-[10px] text-slate-500 font-medium">Active MVP</div>
+            </div>
+
+            {/* Card 3: Phase II Expansion Scope Callout */}
+            <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/50 border border-blue-200/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🇮🇳</span>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      National Geographic Scope
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">
+                    {ACTIVE_CITIES.length} Active Hubs
+                  </span>
+                </div>
+                
+                <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                  Active telemetry sensors deployed across key Indian hubs including Delhi NCR, Bengaluru, Chennai, Kolkata, Hyderabad, Pune, and regional centers.
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {['Delhi NCR', 'Bengaluru', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune'].map((hub) => (
+                    <span
+                      key={hub}
+                      className="px-2 py-0.5 rounded bg-white/80 text-blue-900 text-[10.5px] font-semibold border border-blue-200 shadow-2xs"
+                    >
+                      {hub}
+                    </span>
+                  ))}
+                </div>
               </div>
+
+              <button
+                onClick={onOpenUpcomingModal}
+                className="w-full py-2 text-xs font-bold text-blue-900 bg-white border border-blue-300 hover:bg-blue-100/70 rounded-xl transition-colors shadow-2xs flex items-center justify-center gap-1.5"
+              >
+                <span>View All Corridors ({ACTIVE_CITIES.length} Cities)</span>
+                <span>→</span>
+              </button>
             </div>
           </div>
 
-          {/* 3 Active Monitoring Corridors */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Active Monitoring Corridors
-              </h3>
-              <span className="text-[10px] text-slate-400 font-mono">Maharashtra</span>
+          {/* Row 2: Featured Active Corridors */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Active Urban Corridors
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Continuous high-density atmospheric sensor meshes active across key economic hubs
+                </p>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                {ACTIVE_CITIES.length} Live Corridors
+              </span>
             </div>
 
-            <div className="space-y-2">
-              {ACTIVE_CITIES.map((c) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {ACTIVE_CITIES.slice(0, 3).map((c) => (
                 <div
                   key={c.name}
                   onClick={() => onSelectCity(c.name)}
-                  className="p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-brand-blue-400 hover:shadow-sm transition-all cursor-pointer flex items-center justify-between group"
+                  className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:border-brand-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
+                  <div>
+                    {/* City Photo Banner */}
+                    <div className="relative h-28 w-full bg-slate-100 overflow-hidden">
                       <img
                         src={c.photo}
                         alt={c.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           e.target.onerror = null
                           e.target.src = '/weather_logo.jpg'
                         }}
                       />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 group-hover:text-brand-blue-700 transition-colors flex items-center gap-1.5">
-                        <span>{c.name}</span>
-                        <span className="text-[9.5px] font-normal text-slate-400">({c.region})</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
+                      
+                      <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[9.5px] flex items-center gap-1 shadow-md">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        Live Hub
                       </div>
-                      <div className="text-[10px] text-slate-500 truncate">
-                        {c.sensors}
+
+                      <div className="absolute bottom-2 left-3 right-3 text-white">
+                        <div className="text-base font-extrabold flex items-center gap-1.5 leading-none drop-shadow-sm">
+                          <span>📍</span>
+                          <span>{c.name}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-200 font-medium mt-0.5 drop-shadow-sm">
+                          {c.state} · {c.region}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 space-y-2.5">
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {c.description}
+                      </p>
+
+                      <div className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                        <span className="text-slate-400">Sensors:</span>
+                        <span className="text-slate-800 font-semibold">{c.sensors}</span>
+                      </div>
+
+                      {/* Weather Types */}
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {c.weatherTypes.slice(0, 2).map((wt) => (
+                          <span
+                            key={wt}
+                            className="px-2 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-medium"
+                          >
+                            {wt}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded flex-shrink-0">
-                    Focus →
-                  </span>
+                  <div className="p-3.5 pt-0">
+                    <button
+                      type="button"
+                      className="w-full py-1.5 text-xs font-bold text-brand-blue-700 bg-brand-blue-50/70 hover:bg-brand-blue-100 group-hover:bg-brand-blue-600 group-hover:text-white rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+                    >
+                      <span>Focus on {c.name}</span>
+                      <span>→</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Category Breakdown */}
-          {analysis?.categories && analysis.categories.length > 0 && (
-            <div>
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                Phenomenon Distribution
-              </h3>
-              <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                {analysis.categories.slice(0, 5).map(({ cat, count, pct }) => (
-                  <div key={cat}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-700 font-medium flex items-center gap-1">
-                        <span>{CAT_ICONS[cat] || '🌧️'}</span>
-                        <span>{CAT[cat] || cat}</span>
-                      </span>
-                      <span className="font-mono text-slate-500">{count} ({pct}%)</span>
+          {/* Row 3: Pan-India Extended Network (3 Columns Grid) */}
+          {ACTIVE_CITIES.length > 3 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                    Pan-India Telemetry Network ({ACTIVE_CITIES.length} Corridors)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Comprehensive meteorological corridor coverage across North, South, East, West & Central zones
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400">
+                  {ACTIVE_CITIES.length} Cities Ingested
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ACTIVE_CITIES.slice(3).map((c) => (
+                  <div
+                    key={c.name}
+                    onClick={() => onSelectCity(c.name)}
+                    className="p-3 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-brand-blue-400 hover:shadow-sm transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
+                        <img
+                          src={c.photo}
+                          alt={c.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            e.target.onerror = null
+                            e.target.src = '/weather_logo.jpg'
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 group-hover:text-brand-blue-700 transition-colors flex items-center gap-1.5">
+                          <span>{c.name}</span>
+                          <span className="text-[9.5px] font-normal text-slate-400">({c.state})</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                          {c.sensors}
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${pct}%`, backgroundColor: CAT_COLOR[cat] || '#0284C7' }}
-                      />
-                    </div>
+
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded flex-shrink-0 group-hover:bg-brand-blue-600 group-hover:text-white group-hover:border-brand-blue-600 transition-colors">
+                      Focus →
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Phase II Expansion Scope Callout */}
-          <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">🔒</span>
-              <span className="text-xs font-bold text-amber-900">
-                Phase II Geographic Coverage
-              </span>
-            </div>
-            <p className="text-[11px] text-amber-800/90 leading-relaxed">
-              15 additional Indian hubs (Delhi NCR, Bengaluru, Chennai, Kolkata, Hyderabad, Pune, etc.) are scheduled for sensor deployment.
-            </p>
-            <button
-              onClick={onOpenUpcomingModal}
-              className="w-full py-1.5 text-xs font-bold text-amber-800 bg-white border border-amber-300 hover:bg-amber-50 rounded-lg transition-colors shadow-2xs"
-            >
-              View Geographic Coverage Scope →
-            </button>
-          </div>
         </div>
       )}
     </div>
@@ -934,87 +1193,213 @@ export default function GeospatialIntelligence() {
   }, [selectedState, selectedCity])
 
   return (
-    <div className="flex h-screen bg-slate-50/70 overflow-hidden">
+    <div className="flex min-h-screen bg-slate-50/70">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Container */}
-      <div className="flex flex-col flex-1 min-w-0 bg-slate-50/70 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 bg-slate-50/70">
         <Header />
 
         {/* ── Section 13: Geospatial Intelligence Header ── */}
-        <div className="px-4 lg:px-6 py-2.5 bg-white border-b border-slate-200 flex-shrink-0 space-y-2 select-none">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base">🌐</span>
-                <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
-                  Geospatial Intelligence Engine
-                </h1>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  National Pipeline Live
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                National Weather Intelligence Pipeline · Satellite, Doppler Radar & Ground Sensor Array
-              </p>
+        <div className="px-4 lg:px-6 py-3 bg-white border-b border-slate-200 flex-shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 select-none">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🌐</span>
+              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                Geospatial Intelligence Engine
+              </h1>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                National Pipeline Live
+              </span>
             </div>
-
-            {/* Quick Hub Focus Selector Pills (Section 13) */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-slate-400 font-semibold mr-1">Focus Hub:</span>
-              
-              <button
-                type="button"
-                onClick={handleClearSelection}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-                  !selectedCity
-                    ? 'bg-brand-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                🇮🇳 All India
-              </button>
-
-              {ACTIVE_CITIES.map((c) => {
-                const isSelected = selectedCity === c.name
-                const emoji = c.name === 'Mumbai' ? '🌆' : c.name === 'Nagpur' ? '🏙️' : '🏞️'
-
-                return (
-                  <button
-                    key={c.name}
-                    type="button"
-                    onClick={() => handleSelectCity(c.name)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 shadow-xs ${
-                      isSelected
-                        ? 'border-brand-blue-600 bg-brand-blue-50 text-brand-blue-900 ring-1 ring-brand-blue-600'
-                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
-                    }`}
-                  >
-                    <span>{emoji}</span>
-                    <span>{c.name}</span>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: c.color }}
-                    />
-                  </button>
-                )
-              })}
-
-              <button
-                type="button"
-                onClick={openUpcomingModal}
-                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
-              >
-                +15 Cities (Updated Soon)
-              </button>
-            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              National Weather Intelligence Pipeline · Satellite, Doppler Radar & Ground Sensor Array
+            </p>
           </div>
 
-          {/* Controls & Filter Toolbar */}
-          <div className="flex items-center gap-2 flex-wrap pt-1.5 border-t border-slate-100">
-            {/* Integrated ModelSelect Dropdown (Section 4 & 5) */}
-            <div className="w-52">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Compare Hubs Button */}
+            <button
+              type="button"
+              onClick={() => setShowComparisonModal(true)}
+              className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-2xs font-bold"
+              title="Compare live meteorological metrics across active urban hubs"
+            >
+              <span>⚖️</span>
+              <span>Compare Hubs ({ACTIVE_CITIES.length})</span>
+            </button>
+
+            {/* Export Brief Button */}
+            <button
+              type="button"
+              onClick={exportGeospatialBrief}
+              className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-2xs font-bold"
+              title="Export Regional Geospatial Brief"
+            >
+              <span>📑</span>
+              <span>Export Brief</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Full-Width Map (Primary Focus) ── */}
+        <div className="w-full relative bg-white border-b border-slate-200 h-[560px] sm:h-[620px] lg:h-[680px] min-h-[500px]">
+          <MapContainer
+            center={flyTarget.center}
+            zoom={flyTarget.zoom}
+            scrollWheelZoom={false}
+            style={{ height: '100%', minHeight: '500px', width: '100%', backgroundColor: '#FFFFFF' }}
+            zoomControl={true}
+            attributionControl={false}
+          >
+            {/* MapTiler Streets Base Tiles */}
+            <TileLayer
+              url={`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_API_KEY}`}
+              maxZoom={19}
+              tileSize={512}
+              zoomOffset={-1}
+              attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            />
+
+            {/* Surrounding countries landmass layer */}
+            {surroundingData && (
+              <GeoJSON
+                data={surroundingData}
+                style={() => SURROUNDING_LAND_STYLE}
+                interactive={false}
+              />
+            )}
+
+            {/* Indian state boundary polygons layer (Section 2) */}
+            {geoData && (
+              <GeoJSON
+                data={geoData}
+                style={stateStyle}
+                onEachFeature={(feature, layer) => {
+                  const stName = feature?.properties?.ST_NM || feature?.properties?.name || ''
+                  const stateCities = ACTIVE_CITIES.filter(
+                    (c) => (c.state || '').toLowerCase() === stName.toLowerCase()
+                  )
+                  const stateBadge = stateCities.length > 0
+                    ? `<span style="color:#059669;font-size:9.5px;font-weight:800;">(● ${stateCities.length} Active Hub${stateCities.length > 1 ? 's' : ''})</span>`
+                    : '<span style="color:#0284C7;font-size:9.5px;font-weight:600;">(● Monitored)</span>'
+
+                  layer.bindTooltip(
+                    `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#0F172A;">
+                      📍 ${stName} ${stateBadge}
+                    </div>`,
+                    { sticky: true, className: 'map-state-tooltip' }
+                  )
+
+                  layer.on({
+                    mouseover: (e) => {
+                      const l = e.target
+                      l.setStyle({
+                        weight: 2.5,
+                        color: '#0284C7',
+                        fillOpacity: 0.45,
+                      })
+                    },
+                    mouseout: (e) => {
+                      const l = e.target
+                      l.setStyle(stateStyle(feature))
+                    },
+                    click: () => {
+                      if (stateCities.length > 0) {
+                        setSelectedState(stName)
+                        setFlyTarget({ center: [stateCities[0].lat, stateCities[0].lon], zoom: 7 })
+                      } else {
+                        setSelectedState(stName)
+                      }
+                    },
+                  })
+                }}
+              />
+            )}
+
+            {/* Section 3: Distinct City Markers with Logos & Halos for Active Cities */}
+            {ACTIVE_CITIES.map((city) => (
+              <Marker
+                key={city.name}
+                position={[city.lat, city.lon]}
+                icon={createCityMarkerIcon(city, selectedCity === city.name)}
+                eventHandlers={{
+                  click: () => handleSelectCity(city.name),
+                }}
+              />
+            ))}
+
+            <MapBoundsHandler />
+            <MapFlightController targetCenter={flyTarget.center} targetZoom={flyTarget.zoom} />
+            
+            {/* Event Pins */}
+            <EventMarkers
+              events={mapEvents}
+              layer={selectedLayer}
+              onSelectEvent={(event) => setSelectedEvent(event)}
+            />
+          </MapContainer>
+
+          {/* Layer Control */}
+          <LayerControl selectedLayer={selectedLayer} onSelectLayer={setSelectedLayer} />
+
+          {/* Map Legend (Section 15) */}
+          <MapLegend
+            layer={selectedLayer}
+            selectedCity={selectedCity}
+            selectedState={selectedState}
+          />
+
+          {/* Reset Camera Floating Button */}
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            className="absolute top-3 left-14 z-[1000] bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+            title="Reset view to whole India"
+          >
+            <span>🇮🇳</span>
+            <span>All India</span>
+          </button>
+
+          {/* Section 16: Loading State */}
+          {loading && mapEvents.length === 0 && (
+            <div className="absolute inset-0 bg-white/90 backdrop-blur-xs z-[1001] flex flex-col items-center justify-center select-none">
+              <div className="w-9 h-9 border-3 border-brand-blue-200 border-t-brand-blue-600 rounded-full animate-spin mb-3" />
+              <div className="text-sm font-bold text-slate-900">Loading Geospatial Intelligence...</div>
+              <div className="text-xs text-slate-500 mt-1">Synthesizing state boundaries & satellite telemetry</div>
+            </div>
+          )}
+
+          {/* Section 17: Error State with Retry Button */}
+          {error && mapEvents.length === 0 && (
+            <div className="absolute inset-0 bg-white z-[1001] flex flex-col items-center justify-center p-6 text-center select-none">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 text-xl font-bold mb-3 shadow-xs">
+                ⚠
+              </div>
+              <h3 className="text-base font-bold text-slate-900 mb-1">
+                Geospatial Intelligence unavailable
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mb-4">
+                We couldn't load the geographic telemetry. The background services may be syncing.
+              </p>
+              <button
+                type="button"
+                onClick={() => refreshAll()}
+                className="btn-primary text-xs px-4 py-2 flex items-center gap-2 shadow-xs"
+              >
+                <span>↻</span>
+                <span>Retry</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Search & Filter Controls Toolbar (Below Full-Width Map) ── */}
+        <div className="px-4 lg:px-6 py-3 bg-white border-b border-slate-200 flex-shrink-0 select-none">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Integrated ModelSelect Dropdown */}
+            <div className="w-56">
               <ModelSelect
                 value={selectedCity}
                 onChange={handleSelectCity}
@@ -1089,183 +1474,14 @@ export default function GeospatialIntelligence() {
               </button>
             )}
 
-            {/* Compare 3 Hubs Button */}
-            <button
-              type="button"
-              onClick={() => setShowComparisonModal(true)}
-              className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-2xs font-bold"
-              title="Compare live meteorological metrics between Mumbai, Nagpur and Nashik"
-            >
-              <span>⚖️</span>
-              <span>Compare 3 Hubs</span>
-            </button>
-
-            {/* Export Brief Button */}
-            <button
-              type="button"
-              onClick={exportGeospatialBrief}
-              className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-2xs font-bold"
-              title="Export Regional Geospatial Brief"
-            >
-              <span>📑</span>
-              <span>Export Brief</span>
-            </button>
-
             <div className="ml-auto text-xs text-slate-400 font-mono hidden md:block">
               {mapEvents.length} events plotted
             </div>
           </div>
         </div>
 
-        {/* ── Section 14: Split Layout (Map on Left, Information Panel on Right) ── */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-white">
-          {/* Map Left Container */}
-          <div className="flex-1 relative bg-white min-h-[380px] lg:min-h-0">
-            <MapContainer
-              center={flyTarget.center}
-              zoom={flyTarget.zoom}
-              style={{ height: '100%', width: '100%', backgroundColor: '#FFFFFF' }}
-              zoomControl={true}
-              attributionControl={false}
-            >
-              {/* MapTiler Streets Base Tiles */}
-              <TileLayer
-                url={`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_API_KEY}`}
-                maxZoom={19}
-                tileSize={512}
-                zoomOffset={-1}
-                attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-              />
-
-              {/* Surrounding countries landmass layer */}
-              {surroundingData && (
-                <GeoJSON
-                  data={surroundingData}
-                  style={() => SURROUNDING_LAND_STYLE}
-                  interactive={false}
-                />
-              )}
-
-              {/* Indian state boundary polygons layer (Section 2) */}
-              {geoData && (
-                <GeoJSON
-                  data={geoData}
-                  style={stateStyle}
-                  onEachFeature={(feature, layer) => {
-                    const stName = feature?.properties?.ST_NM || feature?.properties?.name || ''
-                    const isMaha = stName.toLowerCase() === 'maharashtra'
-
-                    layer.bindTooltip(
-                      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#0F172A;">
-                        📍 ${stName} ${isMaha ? '<span style="color:#059669;font-size:9.5px;font-weight:800;">(● 3 Hubs Active)</span>' : '<span style="color:#D97706;font-size:9.5px;">(Phase II)</span>'}
-                      </div>`,
-                      { sticky: true, className: 'map-state-tooltip' }
-                    )
-
-                    layer.on({
-                      mouseover: (e) => {
-                        const l = e.target
-                        l.setStyle({
-                          weight: 2.5,
-                          color: '#0284C7',
-                          fillOpacity: 0.45,
-                        })
-                      },
-                      mouseout: (e) => {
-                        const l = e.target
-                        l.setStyle(stateStyle(feature))
-                      },
-                      click: () => {
-                        if (isMaha) {
-                          setSelectedState('Maharashtra')
-                          setFlyTarget({ center: [19.7515, 75.7139], zoom: 7 })
-                        } else {
-                          openUpcomingModal()
-                        }
-                      },
-                    })
-                  }}
-                />
-              )}
-
-              {/* Section 3: Distinct City Markers with Logos & Halos for Mumbai, Nagpur, Nashik */}
-              {ACTIVE_CITIES.map((city) => (
-                <Marker
-                  key={city.name}
-                  position={[city.lat, city.lon]}
-                  icon={createCityMarkerIcon(city, selectedCity === city.name)}
-                  eventHandlers={{
-                    click: () => handleSelectCity(city.name),
-                  }}
-                />
-              ))}
-
-              <MapBoundsHandler />
-              <MapFlightController targetCenter={flyTarget.center} targetZoom={flyTarget.zoom} />
-              
-              {/* Event Pins */}
-              <EventMarkers
-                events={mapEvents}
-                layer={selectedLayer}
-                onSelectEvent={(event) => setSelectedEvent(event)}
-              />
-            </MapContainer>
-
-            {/* Layer Control */}
-            <LayerControl selectedLayer={selectedLayer} onSelectLayer={setSelectedLayer} />
-
-            {/* Map Legend (Section 15) */}
-            <MapLegend
-              layer={selectedLayer}
-              selectedCity={selectedCity}
-              selectedState={selectedState}
-            />
-
-            {/* Reset Camera Floating Button */}
-            <button
-              type="button"
-              onClick={handleClearSelection}
-              className="absolute top-3 left-14 z-[1000] bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
-              title="Reset view to whole India"
-            >
-              <span>🇮🇳</span>
-              <span>All India</span>
-            </button>
-
-            {/* Section 16: Loading State */}
-            {loading && mapEvents.length === 0 && (
-              <div className="absolute inset-0 bg-white/90 backdrop-blur-xs z-[1001] flex flex-col items-center justify-center select-none">
-                <div className="w-9 h-9 border-3 border-brand-blue-200 border-t-brand-blue-600 rounded-full animate-spin mb-3" />
-                <div className="text-sm font-bold text-slate-900">Loading Geospatial Intelligence...</div>
-                <div className="text-xs text-slate-500 mt-1">Synthesizing state boundaries & satellite telemetry</div>
-              </div>
-            )}
-
-            {/* Section 17: Error State with Retry Button */}
-            {error && mapEvents.length === 0 && (
-              <div className="absolute inset-0 bg-white z-[1001] flex flex-col items-center justify-center p-6 text-center select-none">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 text-xl font-bold mb-3 shadow-xs">
-                  ⚠
-                </div>
-                <h3 className="text-base font-bold text-slate-900 mb-1">
-                  Geospatial Intelligence unavailable
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mb-4">
-                  We couldn't load the geographic telemetry. The background services may be syncing.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => refreshAll()}
-                  className="btn-primary text-xs px-4 py-2 flex items-center gap-2 shadow-xs"
-                >
-                  <span>↻</span>
-                  <span>Retry</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Section 14: Right Information Panel */}
+        {/* ── Intelligence Grid (Below Map & Controls) ── */}
+        <div className="px-4 lg:px-6 py-6">
           <InformationPanel
             events={allEvents}
             selectedEvent={selectedEvent}
@@ -1273,6 +1489,7 @@ export default function GeospatialIntelligence() {
             onSelectCity={handleSelectCity}
             onClearSelection={handleClearSelection}
             onOpenUpcomingModal={openUpcomingModal}
+            onCompareHubs={() => setShowComparisonModal(true)}
           />
         </div>
       </div>
@@ -1297,7 +1514,7 @@ export default function GeospatialIntelligence() {
                     Active Telemetry Corridors — Comparative Matrix
                   </h2>
                   <p className="text-[11px] text-slate-500">
-                    Live meteorological synchronization across Mumbai, Nagpur & Nashik
+                    Live meteorological synchronization across active Indian weather hubs
                   </p>
                 </div>
               </div>
@@ -1397,7 +1614,7 @@ export default function GeospatialIntelligence() {
 
             {/* Modal Footer */}
             <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 flex-shrink-0">
-              <span>Telemetry Corridors: Mumbai (Konkan) · Nagpur (Vidarbha) · Nashik (Ghats)</span>
+              <span>Active Telemetry Corridors: {ACTIVE_CITIES.length} Geographic Hubs Operational</span>
               <button
                 type="button"
                 onClick={() => setShowComparisonModal(false)}

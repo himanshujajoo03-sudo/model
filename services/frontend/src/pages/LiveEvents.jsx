@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import useLiveEventsStore from '../stores/liveEventsStore'
 import useLayoutStore from '../stores/layoutStore'
 import Sidebar from '../components/command-center/Sidebar'
@@ -67,7 +67,7 @@ const SEVERITIES = [
   { value: 'low', label: 'Low', icon: '●', status: 'Low', statusColor: 'bg-slate-100 text-slate-700' },
   { value: 'moderate', label: 'Moderate', icon: '●', status: 'Moderate', statusColor: 'bg-blue-50 text-blue-700' },
   { value: 'high', label: 'High', icon: '●', status: 'High', statusColor: 'bg-amber-50 text-amber-700' },
-  { value: 'extreme', label: 'Extreme / Critical', icon: '●', status: 'Critical', statusColor: 'bg-rose-50 text-rose-700' },
+  { value: 'critical', label: 'Critical / Extreme', icon: '●', status: 'Critical', statusColor: 'bg-rose-50 text-rose-700' },
 ]
 
 const VERIFICATIONS = [
@@ -88,9 +88,11 @@ const SORT_OPTIONS = [
 
 const SOURCE_OPTIONS = [
   { value: '', label: 'All Ingestion Sources', icon: '📡' },
-  { value: 'weather_api', label: 'Weather API', icon: '🌐', subtitle: 'Official feeds' },
-  { value: 'synthetic', label: 'Synthetic Doppler', icon: '🛰️', subtitle: 'Radar fusion' },
-  { value: 'citizen', label: 'Citizen Reports', icon: '👥', subtitle: 'Ground truth' },
+  { value: 'weather_api', label: 'Open-Meteo Weather Telemetry', icon: '🌐', subtitle: 'Automated Weather Stations' },
+  { value: 'sachet_ndma', label: 'NDMA SACHET Disaster Warnings', icon: '🚨', subtitle: 'National Early Warning' },
+  { value: 'gdacs', label: 'GDACS Global Hazard Alerts', icon: '🌍', subtitle: 'Disaster Coordination' },
+  { value: 'social', label: 'Mastodon Social Intelligence', icon: '💬', subtitle: 'Public Weather Signals' },
+  { value: 'citizen', label: 'Citizen Field Reports', icon: '👥', subtitle: 'Ground Truth Verification' },
 ]
 
 function ago(iso) {
@@ -115,6 +117,7 @@ function formatLatency(ms) {
 
 export default function LiveEvents() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const {
     events, total, totalPages, page, pageSize,
     filters, sortBy, sortOrder, search,
@@ -131,6 +134,30 @@ export default function LiveEvents() {
     startPolling()
     return () => stopPolling()
   }, [startPolling, stopPolling])
+
+  // Synchronize URL query parameters from KPI clicks or direct links into filter store
+  useEffect(() => {
+    const sev = searchParams.get('severity')
+    const ver = searchParams.get('verification_status') || searchParams.get('verification')
+    const cat = searchParams.get('category')
+    const src = searchParams.get('source_type') || searchParams.get('source')
+    const city = searchParams.get('city')
+
+    if (sev || ver || cat || src || city) {
+      setFilters({
+        ...(sev ? { severity: sev } : {}),
+        ...(ver ? { verification_status: ver } : {}),
+        ...(cat ? { category: cat } : {}),
+        ...(src ? { source_type: src } : {}),
+        ...(city ? { city: city } : {}),
+      })
+    }
+  }, [searchParams, setFilters])
+
+  const handleResetFilters = () => {
+    clearFilters()
+    setSearchParams({})
+  }
 
   // One-Click CSV Export Generator
   const exportToCSV = () => {
@@ -264,7 +291,7 @@ export default function LiveEvents() {
                 )}
               </div>
               <p className="text-xs text-slate-500">
-                Continuous atmospheric intelligence streaming across Mumbai, Nagpur & Nashik
+                Continuous atmospheric intelligence streaming across active Indian weather hubs
               </p>
             </div>
 
@@ -362,7 +389,7 @@ export default function LiveEvents() {
               <div className="w-44">
                 <SelectDropdown
                   options={SEVERITIES}
-                  value={filters.severity || ''}
+                  value={filters.severity === 'extreme' ? 'critical' : (filters.severity || '')}
                   onChange={(val) => setFilters({ severity: val || null })}
                   placeholder="All Severities"
                   compact={true}
@@ -373,7 +400,7 @@ export default function LiveEvents() {
               <div className="w-44">
                 <SelectDropdown
                   options={VERIFICATIONS}
-                  value={filters.verification_status || ''}
+                  value={(filters.verification_status === 'needs_review' || filters.verification_status === 'under_review') ? 'pending' : (filters.verification_status || '')}
                   onChange={(val) => setFilters({ verification_status: val || null })}
                   placeholder="All Statuses"
                   compact={true}
@@ -381,7 +408,7 @@ export default function LiveEvents() {
               </div>
 
               {/* Source */}
-              <div className="w-48">
+              <div className="w-52">
                 <SelectDropdown
                   options={SOURCE_OPTIONS}
                   value={filters.source_type || ''}
@@ -393,7 +420,7 @@ export default function LiveEvents() {
 
               {activeFilterCount > 0 && (
                 <button
-                  onClick={clearFilters}
+                  onClick={handleResetFilters}
                   className="h-8 px-3 text-xs text-rose-600 hover:text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-lg shadow-xs transition-colors"
                 >
                   Reset ({activeFilterCount})
@@ -811,7 +838,7 @@ export default function LiveEvents() {
                   <SourceChannelLogo source={previewEvent.source_name || 'radar'} size="sm" />
                   <div>
                     <span className="text-xs font-bold text-slate-800 block">
-                      {previewEvent.source_name || 'DWR Doppler Ingestion'}
+                      {previewEvent.source_name || 'Open-Meteo / Ingestion Stream'}
                     </span>
                     <span className="text-[10.5px] text-slate-400">
                       Timestamp: {new Date(previewEvent.event_timestamp || previewEvent.created_at || Date.now()).toLocaleString('en-IN')}

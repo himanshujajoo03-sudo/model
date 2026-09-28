@@ -38,17 +38,22 @@ class SocialAdapter:
                 if events:
                     return events
             except Exception as exc:
-                logger.warning("Mastodon API fetch failed, falling back to simulated feed: %s", exc)
+                logger.warning("Mastodon API fetch failed: %s", exc)
 
-        # 2. Fallback to simulated feed file / default demo record
-        return self._fetch_simulated()
+        # 2. Fallback to simulated feed ONLY if SYNTHETIC_ENABLED is explicitly enabled
+        synthetic_enabled = os.environ.get("SYNTHETIC_ENABLED", "false").lower() in ("1", "true", "yes")
+        if synthetic_enabled:
+            logger.info("Using simulated social feed fallback as SYNTHETIC_ENABLED is true")
+            return self._fetch_simulated()
+        logger.info("Skipping simulated social feed fallback because SYNTHETIC_ENABLED is false")
+        return []
 
     def _fetch_mastodon(self):
         headers = {}
         if self.access_token:
             headers["Authorization"] = f"Bearer {self.access_token}"
         url = f"{self.base_url}/api/v1/timelines/tag/{self.tag}"
-        resp = httpx.get(url, headers=headers, params={"limit": self.limit}, timeout=10)
+        resp = httpx.get(url, headers=headers, params={"limit": self.limit}, timeout=25.0)
         if resp.status_code != 200:
             logger.warning("Mastodon API returned status %d", resp.status_code)
             return []

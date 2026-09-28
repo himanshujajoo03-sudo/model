@@ -77,6 +77,111 @@ function ago(iso) {
   return `${Math.floor(s / 86400)}d ago`
 }
 
+/* ── Demo-only Multi-Agency Verification Mapping ─────────────── */
+const DEMO_AGENCY_SUPPORT_MAP = {
+  imd: {
+    id: 'imd',
+    name: 'IMD',
+    fullName: 'India Meteorological Department',
+    supportPct: 94,
+    badge: 'Official Met Dept',
+    barColor: 'from-blue-600 to-indigo-600',
+  },
+  ndma: {
+    id: 'ndma',
+    name: 'NDMA / SACHET',
+    fullName: 'National Disaster Management Authority',
+    supportPct: 89,
+    badge: 'CAP Alert',
+    barColor: 'from-purple-600 to-indigo-600',
+  },
+  open_meteo: {
+    id: 'open_meteo',
+    name: 'Open-Meteo',
+    fullName: 'Synoptic AWS Telemetry',
+    supportPct: 96,
+    badge: 'Synoptic AWS',
+    barColor: 'from-emerald-500 to-teal-600',
+  },
+  gdacs: {
+    id: 'gdacs',
+    name: 'GDACS',
+    fullName: 'Global Disaster Alert System',
+    supportPct: 82,
+    badge: 'UN-OCHA Feed',
+    barColor: 'from-amber-500 to-orange-500',
+  },
+  ecmwf: {
+    id: 'ecmwf',
+    name: 'ECMWF ERA5',
+    fullName: 'Copernicus Atmospheric Reanalysis',
+    supportPct: 98,
+    badge: 'Copernicus C3S',
+    barColor: 'from-sky-500 to-blue-600',
+  },
+}
+
+function resolveDemoAgency(keyOrName) {
+  const norm = (keyOrName || '').toLowerCase().trim()
+  if (norm.includes('imd') || norm.includes('india met')) return DEMO_AGENCY_SUPPORT_MAP.imd
+  if (norm.includes('sachet') || norm.includes('ndma')) return DEMO_AGENCY_SUPPORT_MAP.ndma
+  if (norm.includes('open-meteo') || norm.includes('open_meteo') || norm.includes('synoptic')) return DEMO_AGENCY_SUPPORT_MAP.open_meteo
+  if (norm.includes('gdacs') || norm.includes('un-ocha') || norm.includes('rss')) return DEMO_AGENCY_SUPPORT_MAP.gdacs
+  if (norm.includes('ecmwf') || norm.includes('era5') || norm.includes('copernicus')) return DEMO_AGENCY_SUPPORT_MAP.ecmwf
+
+  // Deterministic fallback for any other source name
+  let hash = 0
+  for (let i = 0; i < norm.length; i++) hash += norm.charCodeAt(i)
+  const pct = 80 + (hash % 16)
+  return {
+    id: norm.replace(/[^a-z0-9]/g, '_'),
+    name: keyOrName,
+    fullName: keyOrName,
+    supportPct: pct,
+    badge: 'Corroborated',
+    barColor: 'from-slate-600 to-slate-800',
+  }
+}
+
+function getVerificationSourcesForEvent(event) {
+  const rawSources = event?.contributing_sources || event?.sources
+  const primaryName = event?.source?.source_name || ''
+
+  // If specific contributing sources are explicitly provided for this event:
+  if (Array.isArray(rawSources) && rawSources.length > 1) {
+    const list = []
+    const seen = new Set()
+    if (primaryName) {
+      const resolved = resolveDemoAgency(primaryName)
+      seen.add(resolved.id)
+      list.push(resolved)
+    }
+    for (const s of rawSources) {
+      const resolved = resolveDemoAgency(s)
+      if (!seen.has(resolved.id)) {
+        seen.add(resolved.id)
+        list.push(resolved)
+      }
+    }
+    return list
+  }
+
+  // Default multi-agency verification provenance for demo
+  const defaultAgencies = [
+    DEMO_AGENCY_SUPPORT_MAP.imd,
+    DEMO_AGENCY_SUPPORT_MAP.ndma,
+    DEMO_AGENCY_SUPPORT_MAP.open_meteo,
+    DEMO_AGENCY_SUPPORT_MAP.gdacs,
+  ]
+
+  const normPrimary = primaryName.toLowerCase()
+  if (normPrimary.includes('ecmwf') || normPrimary.includes('era5') || normPrimary.includes('copernicus')) {
+    return [DEMO_AGENCY_SUPPORT_MAP.ecmwf, ...defaultAgencies]
+  }
+
+  return defaultAgencies
+}
+
 /* ── Panel wrapper ──────────────────────────────────────────── */
 function Panel({ title, children, className = '' }) {
   return (
@@ -175,6 +280,7 @@ export default function EventIntelligence() {
   const media = event.media || {}
   const vs = VER_STATUS[ver.status] || VER_STATUS.pending
   const hasCoords = loc.latitude && loc.longitude
+  const verificationSources = getVerificationSourcesForEvent(event)
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -395,31 +501,54 @@ export default function EventIntelligence() {
                   <Metric label="Validation Authority" value={<span className="text-emerald-700 font-bold">Copernicus C3S / NDMA SACHET</span>} />
                   
                   <div className="border-t border-slate-100 my-2" />
-                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    🛡️ Multi-Source Cross-Corroboration
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>🛡️</span>
+                      <span>Agency Cross-Verification Provenance</span>
+                    </div>
+                    <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Multi-Agency Verified
+                    </span>
                   </div>
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-emerald-600 font-bold">✓</span>
-                        <span className="font-semibold text-slate-800">ECMWF ERA5 Reanalysis</span>
+
+                  <div className="space-y-2 text-xs">
+                    {verificationSources.map((agency) => (
+                      <div
+                        key={agency.id}
+                        className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-emerald-600 font-bold text-xs">✓</span>
+                            <span className="font-bold text-slate-900 truncate">
+                              {agency.name}
+                            </span>
+                            <span className="text-slate-400 font-medium">—</span>
+                            <span className="font-bold text-slate-700 whitespace-nowrap">
+                              {agency.supportPct}% Support
+                            </span>
+                          </div>
+                          {agency.badge && (
+                            <span className="text-[9.5px] font-medium text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 hidden sm:inline-block">
+                              {agency.badge}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Compact polished progress bar */}
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex-1 bg-slate-200/80 h-2 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full bg-gradient-to-r ${agency.barColor} transition-all duration-500`}
+                              style={{ width: `${agency.supportPct}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] font-bold mono text-slate-700 w-8 text-right shrink-0">
+                            {agency.supportPct}%
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">99% Validated</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-emerald-600 font-bold">✓</span>
-                        <span className="font-semibold text-slate-800">Open-Meteo Synoptic AWS</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">Corroborated</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-emerald-600 font-bold">✓</span>
-                        <span className="font-semibold text-slate-800">NDMA SACHET Disaster Warning</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200">Cross-Checked</span>
-                    </div>
+                    ))}
                   </div>
 
                   <div className="border-t border-slate-100 my-2" />

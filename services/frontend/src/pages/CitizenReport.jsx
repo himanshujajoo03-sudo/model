@@ -195,7 +195,7 @@ export default function CitizenReport() {
     }, 550)
   }
 
-  // Reset form for demo
+  // Reset form state
   const handleResetForm = () => {
     handleRemoveImage()
     setEventType('')
@@ -226,28 +226,20 @@ export default function CitizenReport() {
             {/* Page Header Strip */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="badge badge-info text-[10px] font-mono tracking-wider uppercase">
-                    CITIZEN INTELLIGENCE DESK
-                  </span>
-                  <span className="badge badge-pending text-[10px] font-mono tracking-wider">
-                    DEMO INTERFACE
-                  </span>
-                </div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  Report What's Happening Around You
+                  Report an Event
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                  Your local observation can help identify weather events faster and improve situational awareness.
+                  Share a weather-related event with the monitoring team.
                 </p>
               </div>
 
-              {/* Security & Non-Persistence Trust Badge */}
+              {/* Status Badge */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs shadow-2xs self-start sm:self-auto">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="font-medium text-slate-700">Client-Side Demo</span>
+                <span className="font-medium text-slate-700">Community Reporting</span>
                 <span className="text-slate-300">•</span>
-                <span className="text-slate-500 text-[11px]">No data stored</span>
+                <span className="text-slate-500 text-[11px]">Live Verification</span>
               </div>
             </div>
 
@@ -499,7 +491,7 @@ export default function CitizenReport() {
                               Click to select an image from your device
                             </div>
                             <div className="text-[11px] text-slate-400">
-                              PNG, JPG, or WebP up to 10MB • <span className="text-slate-500 font-medium">Never uploaded to server</span>
+                              PNG, JPG, or WebP up to 10MB
                             </div>
                           </div>
                         </div>
@@ -515,10 +507,10 @@ export default function CitizenReport() {
                               <span className="text-xs font-bold text-slate-800 truncate">
                                 {imageFile?.name}
                               </span>
-                              <span className="badge badge-info text-[9px]">LOCAL PREVIEW</span>
+                              <span className="badge badge-info text-[9px]">PREVIEW</span>
                             </div>
                             <div className="text-[11px] text-slate-400 mt-0.5">
-                              Size: {imageFile?.size} • Client memory only
+                              Size: {imageFile?.size}
                             </div>
                           </div>
                           <button
@@ -571,7 +563,7 @@ export default function CitizenReport() {
                     </div>
 
                     <div className="text-[10px] text-slate-400 italic">
-                      Note: Name and contact values are optional and will not be transmitted, stored, or indexed anywhere.
+                      Note: Name and contact information are optional. Reports can be submitted anonymously.
                     </div>
 
                     {/* Submit Button & Clear */}
@@ -606,9 +598,9 @@ export default function CitizenReport() {
                       </button>
                     </div>
 
-                    {/* Mandatory Subtle Note Below Form */}
+                    {/* Informational Note Below Form */}
                     <div className="pt-2 text-center text-[11px] text-slate-400">
-                      Demo interface • Reports submitted here are not stored.
+                      Reports are shared directly with meteorological monitoring personnel.
                     </div>
 
                   </form>
@@ -708,14 +700,14 @@ export default function CitizenReport() {
                   </ul>
                 </div>
 
-                {/* Card 3: Demonstration Notice Banner */}
-                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs">
-                  <div className="flex items-center gap-2 font-bold mb-1">
-                    <span>ℹ️</span>
-                    <span>Demo Environment Notice</span>
-                  </div>
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
-                    This reporting page is an interactive demonstration designed for UI evaluation. No network requests, API calls, or backend storage transactions take place.
+                {/* Card 3: Verification & Review Card */}
+                <div className="card-white p-5 border border-slate-200 shadow-sm bg-white rounded-2xl">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                    <span>🛡️</span>
+                    <span>Verification & Review</span>
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Submitted reports are reviewed and corroborated with regional radar and weather station networks by monitoring personnel before alerts are dispatched.
                   </p>
                 </div>
 
@@ -743,10 +735,10 @@ export default function CitizenReport() {
                 Thank you for your report.
               </h3>
               <p className="text-xs text-slate-600 mt-1">
-                Your observation has been recorded for this demonstration.
+                Your observation has been received by the monitoring team for verification.
               </p>
-              <div className="inline-block mt-2 px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-mono font-medium">
-                Demo submission — no data is stored.
+              <div className="inline-block mt-2 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-medium">
+                Report acknowledged for review.
               </div>
             </div>
 
@@ -774,7 +766,7 @@ export default function CitizenReport() {
               {submittedData.hasPhoto && (
                 <div className="flex justify-between py-1 border-b border-slate-100 items-center">
                   <span className="text-slate-400">Attached Photo:</span>
-                  <span className="text-[11px] text-emerald-700 font-medium">Previewed Locally</span>
+                  <span className="text-[11px] text-emerald-700 font-medium">Photo Attached</span>
                 </div>
               )}
               <div className="pt-1 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">

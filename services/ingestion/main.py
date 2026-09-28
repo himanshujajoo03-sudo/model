@@ -42,7 +42,7 @@ def _parse_bool(value, default=True):
     return str(value).strip().lower() in ("true", "1", "yes")
 
 
-SYNTHETIC_ENABLED = _parse_bool(os.environ.get("SYNTHETIC_ENABLED"), default=True)
+SYNTHETIC_ENABLED = _parse_bool(os.environ.get("SYNTHETIC_ENABLED"), default=False)
 
 # ── Synthetic test events ────────────────────────────────────────────
 SYNTHETIC_EVENTS = [

@@ -451,14 +451,14 @@ export default function IndiaEventMap() {
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                 : 'text-slate-500'
             }`}
-            title="Toggle 3 MVP City Beacons"
+            title="Toggle Active City Beacons"
           >
             <span
               className={`node-dot ${
                 showCityBeacons ? 'bg-emerald-600' : 'bg-slate-300'
               }`}
             />
-            <span>3 Hubs</span>
+            <span>Active Hubs ({ACTIVE_CITIES.length})</span>
           </button>
 
           <button

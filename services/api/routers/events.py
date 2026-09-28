@@ -394,14 +394,53 @@ async def list_events(
     if category:
         conditions.append("event_category = %s"); params.append(category)
     if severity:
-        conditions.append("severity = %s"); params.append(severity)
+        if severity.lower() in ("critical", "extreme"):
+            conditions.append("severity IN ('critical', 'extreme')")
+        else:
+            conditions.append("severity = %s"); params.append(severity)
     if verification_status:
-        conditions.append("verification_status = %s"); params.append(verification_status)
+        if verification_status.lower() in ("pending", "needs_review", "under_review", "review"):
+            conditions.append("verification_status IN ('pending', 'needs_review')")
+        else:
+            conditions.append("verification_status = %s"); params.append(verification_status)
     if source_type:
-        # source_type filter: check if the canonical event has records from this source type
-        conditions.append(
-            "canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_type = %s)"
-        ); params.append(source_type)
+        st = source_type.lower()
+        if st in ("weather_api", "synoptic_telemetry", "open_meteo", "open-meteo"):
+            conditions.append(
+                "(canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_type = 'weather_api' OR source_name ILIKE %s) "
+                "OR 'Open-Meteo' = ANY(contributing_sources))"
+            )
+            params.append("%open-meteo%")
+        elif st in ("sachet_ndma", "government_warning", "sachet", "ndma"):
+            conditions.append(
+                "(canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_name = 'sachet_ndma' OR source_name ILIKE %s) "
+                "OR 'sachet_ndma' = ANY(contributing_sources))"
+            )
+            params.append("%sachet%")
+        elif st in ("gdacs", "global_alert", "rss_feed", "rss"):
+            conditions.append(
+                "(canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_name = 'rss_feed' OR source_name ILIKE %s OR source_type = 'rss') "
+                "OR 'rss_feed' = ANY(contributing_sources))"
+            )
+            params.append("%gdacs%")
+        elif st in ("social", "social_media", "mastodon"):
+            conditions.append(
+                "(canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_type = 'social' OR source_name ILIKE %s) "
+                "OR 'mastodon' = ANY(contributing_sources))"
+            )
+            params.append("%mastodon%")
+        elif st in ("citizen", "citizen_report", "citizen_form"):
+            conditions.append(
+                "(canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_type = 'citizen' OR source_name ILIKE %s) "
+                "OR 'citizen_form' = ANY(contributing_sources))"
+            )
+            params.append("%citizen%")
+        else:
+            conditions.append(
+                "(canonical_event_id IN (SELECT canonical_event_id FROM events WHERE source_type = %s OR source_name = %s) "
+                "OR %s = ANY(contributing_sources))"
+            )
+            params.extend([source_type, source_type, source_type])
     if start_time:
         conditions.append("last_seen >= %s"); params.append(start_time)
     if end_time:

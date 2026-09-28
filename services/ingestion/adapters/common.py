@@ -162,6 +162,18 @@ def make_event(
                 if matched_city:
                     resolved_city = matched_city
                     _, _, resolved_district, resolved_state = CITIES[matched_city]
+                else:
+                    # Spatial resolution: associate with closest Indian city hub
+                    best_city, best_dist = None, float("inf")
+                    for c_name, (c_lat, c_lon, c_dist, c_state) in CITIES.items():
+                        d = (lat - c_lat) ** 2 + (lon - c_lon) ** 2
+                        if d < best_dist:
+                            best_dist = d
+                            best_city = c_name
+                    if best_city:
+                        resolved_city = best_city
+                        if not resolved_district or not resolved_state:
+                            _, _, resolved_district, resolved_state = CITIES[best_city]
         else:
             # Foreign / International event — preserve coordinates, do not force Indian administrative fields
             resolved_country = resolved_country or "International"
